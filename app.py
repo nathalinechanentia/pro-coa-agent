@@ -28,7 +28,7 @@ def get_secret(key: str) -> str:
     except Exception:
         return ""
     
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
 
 # ── Page config (must be first Streamlit call) ──────────────────────────────
 st.set_page_config(
@@ -243,69 +243,51 @@ def build_clarification_question(context: dict) -> str:
             f"What **phase** is your {indication} trial? (Phase 1 / 2 / 3)\n\n"
             f"Otherwise I'll proceed assuming **Phase 3**."
         )
+    # Fallback — should not normally reach here, but prevents returning None
     return (
-        f"A few trial parameters are unclear. Could you confirm:\n"
-        f"- **Indication:** {indication}\n"
-        f"- **Phase:** {phase or 'not specified'}\n"
-        f"- **Drug class:** {drug_class or 'not specified'}\n\n"
-        f"Otherwise I'll proceed with these assumptions and flag them in the output."
+        f"I will proceed with the following inferences: "
+        f"**{indication}** · **{phase or 'Phase 3'}** · **{drug_class or 'unknown drug class'}**. "
+        f"Correct anything in your next message if needed."
     )
 
-def _show_confirmation_card(ctx: dict):
+
+def _show_confirmation_card(ctx: dict) -> None:
     """
-    Show confirmation before running pipeline.
-    If nothing was inferred: show compact summary and proceed automatically.
-    If inferences were made: show only the inferences and ask to confirm.
+    Informational-only card shown before the pipeline runs.
+    Shows what was extracted and what was inferred.
+    Pipeline runs immediately after — no user response needed.
     """
     assumptions = ctx.get("assumptions_made", [])
-    extracted_summary = (
-        f"**{ctx.get('indication', '—')}** | {ctx.get('phase', '—')} | "
-        f"{ctx.get('drug_class', '—')} | {ctx.get('population_subtype', '—')} | "
-        f"Footprint: {ctx.get('geographic_footprint', '—')} | "
-        f"HTA: {', '.join(ctx.get('hta_markets', []))}"
-    )
+    fields = " &nbsp;·&nbsp; ".join(filter(None, [
+        f"<b>{ctx.get('indication', '—')}</b>",
+        ctx.get('phase', '—'),
+        ctx.get('drug_class', '—'),
+        ctx.get('population_subtype', ''),
+        f"Footprint: {ctx.get('geographic_footprint', '—')}" if ctx.get('geographic_footprint') else "",
+        f"HTA: {', '.join(ctx.get('hta_markets', []))}" if ctx.get('hta_markets') else "",
+    ]))
 
     if not assumptions:
-        st.markdown(
+        html = (
             '<div class="clarify-box">'
             '✅ <b>All parameters extracted from your message.</b><br>'
-            f'{extracted_summary}<br><br>'
-            '<i>Type <b>yes</b> to run the analysis, or add corrections first.</i>'
-            '</div>', unsafe_allow_html=True
+            f'{fields}'
+            '</div>'
         )
     else:
-        st.markdown(
+        inferences = "<br>".join(f"&nbsp;&nbsp;⚠️ {a}" for a in assumptions)
+        html = (
             '<div class="clarify-box">'
-            '<b>📋 Extracted from your message:</b><br>'
-            f'{extracted_summary}<br><br>'
-            '<b>⚠️ The following were inferred (not stated in your message):</b><br>'
-            + "<br>".join(f"• {a}" for a in assumptions)
-            + '<br><br><i>Type <b>yes</b> to proceed with these inferences, '
-            'or correct them and resend.</i>'
-            '</div>', unsafe_allow_html=True
+            '<b>📋 Parameters extracted from your message:</b><br>'
+            f'{fields}<br><br>'
+            '<b>Inferences made (not stated in your message):</b><br>'
+            f'{inferences}<br><br>'
+            '<small>If anything is wrong, send a correction in your next message '
+            'and the analysis will update.</small>'
+            '</div>'
         )
+    st.markdown(html, unsafe_allow_html=True)
 
-# def classify_flag(flag: str) -> str:
-#     """Return CSS class for a scoring flag based on its content."""
-#     f = flag.upper()
-#     if any(x in f for x in [
-#         "PENALTY", "CRITICAL", "MISSING CORE", "RECALL BIAS", "ESTIMAND",
-#         "NO MCID PENALTY", "ASYMPTOMATIC BURDEN", "PRE-SPECIFICATION",
-#         "LANGUAGE DATA UNAVAILABLE", "PRIOR REJECTION"
-#     ]):
-#         return "flag-penalty"
-#     if any(x in f for x in [
-#         "+35", "+25", "+20", "+15", "+10)", "+5)",
-#         "VALIDATED MCID (+", "TPP/CORE FIT", "REGULATORY TRUST",
-#         "COMPETITOR BENCH", "MOA SENSITIVITY", "ECOA READY", "OPEN ACCESS",
-#         "HTA ALIGNMENT (+", "RECALL PERIOD COMPATIBLE", "CONTENT VALIDITY"
-#     ]):
-#         return "flag-bonus"
-#     if any(x in f for x in [
-#         "RECALL PERIOD COMPATIBLE", "LANGUAGE COVERAGE", "RECALL PERIOD UNKNOWN"
-#     ]):
-#         return "flag-info"
-#     return "flag-neutral"
 
 def classify_flag(flag_text: str) -> str:
     t = flag_text.upper()
@@ -347,6 +329,32 @@ def extract_web_links(text: str) -> list:
             out.append((anchor, url))
     return out
 
+def convert_web_citations_to_numbers(text: str, start_n: int = 1) -> tuple:
+    """
+    Convert [anchor text](url) markdown links to numbered superscript HTML.
+    Numbers start at start_n so KG and web citations share one sequence.
+    Returns (modified_text, [(num, anchor, url), ...]).
+    """
+    pattern = re.compile(r'\[([^\]]+)\]\((https?://[^\)\s]+)\)')
+    seen_urls: dict = {}
+    footnotes: list = []
+
+    def replace(match):
+        anchor = match.group(1)
+        url    = match.group(2)
+        if url not in seen_urls:
+            n = len(seen_urls) + start_n
+            seen_urls[url] = n
+            footnotes.append((n, anchor, url))
+        n = seen_urls[url]
+        return (
+            f'<sup><a href="{url}" target="_blank" '
+            f'style="color:#185FA5;font-weight:bold;text-decoration:none;'
+            f'font-size:0.8em">[{n}]</a></sup>'
+        )
+
+    return pattern.sub(replace, text), footnotes
+
 def render_kg_evidence_cards(result: dict):
     """
     Shows ALL KG records retrieved — independent of what Sonnet cited.
@@ -371,32 +379,31 @@ def render_kg_evidence_cards(result: dict):
             )
             rows = []
             for i, inst in enumerate(scored[:15], 1):
-                nct     = str(inst.get("nct_id", ""))
-                doi     = str(inst.get("publication_doi", ""))
+                nct = str(inst.get("nct_id", ""))
+                doi = str(inst.get("publication_doi", ""))
                 fda_url = str(inst.get("fda_label_url", ""))
                 ema_url = str(inst.get("ema_label_url", ""))
-                kf      = str(inst.get("key_finding", "") or "")
-
+                kf = str(inst.get("key_finding", "") or "")
                 rows.append({
-                    "Ref":          f"TI-{i:03d}",
-                    "Instrument":   inst.get("instrument_name", ""),
-                    "Drug":         inst.get("drug_name", ""),
-                    "Trial":        inst.get("trial_name", "") or "—",
-                    "Phase":        inst.get("phase", ""),
-                    "Score":        f"{inst.get('scientific_score','—')}/100",
-                    "Risk":         inst.get("risk_level", ""),
-                    "Role":         inst.get("endpoint_role", ""),
-                    "Key finding":  (kf[:100] + "…") if len(kf) > 100 else kf,
-                    "NCT":          (f"https://clinicaltrials.gov/study/{nct}"
-                                     if nct.startswith("NCT") else ""),
-                    "DOI":          (f"https://doi.org/{doi}"
-                                     if doi and doi not in ("nan","None","") else ""),
-                    "FDA":          fda_url if fda_url.startswith("http") else "",
-                    "EMA":          ema_url if ema_url.startswith("http") else "",
+                    "Ref": f"TI-{i:03d}",
+                    "Instrument": inst.get("instrumentname", ""),
+                    "Drug": inst.get("drugname", ""),
+                    "Trial": inst.get("trialname", "") or "",
+                    "Phase": inst.get("phase", ""),
+                    "Score": f"{inst.get('scientificscore', 0)}/100",
+                    "Risk": inst.get("risklevel", ""),
+                    "Role": inst.get("endpointrole", ""),
+                    "Key finding": kf[:100] if len(kf) > 100 else kf,
+                    "NCT": f"https://clinicaltrials.gov/study/{nct}" if nct.startswith("NCT") else "",
+                    "DOI": f"https://doi.org/{doi}" if doi and doi not in ("nan", "None", "") else "",
+                    "FDA": fda_url if fda_url.startswith("http") else "",
+                    "EMA": ema_url if ema_url.startswith("http") else "",
                 })
 
+            df_instr = pd.DataFrame(rows)
+
             st.dataframe(
-                pd.DataFrame(rows),
+                df_instr,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
@@ -404,7 +411,16 @@ def render_kg_evidence_cards(result: dict):
                     "DOI": st.column_config.LinkColumn("DOI"),
                     "FDA": st.column_config.LinkColumn("FDA"),
                     "EMA": st.column_config.LinkColumn("EMA"),
-                }
+                },
+            )
+
+            csv_instr = df_instr.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download instrument evidence as CSV",
+                data=csv_instr,
+                file_name="instrument_evidence_records.csv",
+                mime="text/csv",
+                use_container_width=True,
             )
 
         if reg_records:
@@ -414,8 +430,50 @@ def render_kg_evidence_cards(result: dict):
             non_rejections = [r for r in reg_records if not r.get("rejection_reason_primary")]
             rejections     = [r for r in reg_records if     r.get("rejection_reason_primary")]
 
+            review_rows = []
+            for i, rr in enumerate(non_rejections[:15], 1):
+                review_rows.append({
+                    "Ref": f"RR-{i:03d}",
+                    "Drug": rr.get("drugname", ""),
+                    "Agency": rr.get("agency", ""),
+                    "Decision": rr.get("decision", ""),
+                    "Accepted instruments": rr.get("instrumentsaccepted", ""),
+                    "Claim type": rr.get("claimtype", ""),
+                    "Label language": rr.get("labellanguage", ""),
+                    "Primary rejection reason": "",
+                    "Detailed rejection reason": "",
+                    "FDA": str(rr.get("fdalabelurl", "")) if str(rr.get("fdalabelurl", "")).startswith("http") else "",
+                    "EMA": str(rr.get("emalabelurl", "")) if str(rr.get("emalabelurl", "")).startswith("http") else "",
+                })
+
+            for i, rr in enumerate(rejections[:15], 1):
+                review_rows.append({
+                    "Ref": f"REJ-{i:03d}",
+                    "Drug": rr.get("drugname", ""),
+                    "Agency": rr.get("agency", ""),
+                    "Decision": rr.get("decision", ""),
+                    "Accepted instruments": rr.get("instrumentsaccepted", ""),
+                    "Claim type": rr.get("claimtype", ""),
+                    "Label language": rr.get("labellanguage", ""),
+                    "Primary rejection reason": rr.get("rejectionreasonprimary", ""),
+                    "Detailed rejection reason": rr.get("rejectionreasondetailed", ""),
+                    "FDA": str(rr.get("fdalabelurl", "")) if str(rr.get("fdalabelurl", "")).startswith("http") else "",
+                    "EMA": str(rr.get("emalabelurl", "")) if str(rr.get("emalabelurl", "")).startswith("http") else "",
+                })
+
+            if review_rows:
+                df_reviews = pd.DataFrame(review_rows)
+                csv_reviews = df_reviews.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "Download regulatory review evidence as CSV",
+                    data=csv_reviews,
+                    file_name="regulatory_review_records.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+
             # ── Accepted reviews ──────────────────────────────────────────────
-            for i, rr in enumerate(non_rejections[:15], 1):   # ← FIX 1: was reg_records
+            for i, rr in enumerate(non_rejections[:15], 1):   
                 icon    = "✅"
                 ref     = f"RR-{i:03d}"
                 fda_url = str(rr.get("fda_label_url", ""))
@@ -580,7 +638,7 @@ def build_source_links_html(record: dict) -> str:
     )
 
 
-def linkify_and_number_citations(text: str, citation_index: dict) -> tuple:
+def linkify_and_number_citations(text: str, citation_index: dict, start_n: int = 1) -> tuple:
     """
     Finds [TI-001], [RR-003], [REJ-012], [IR-001], [RULE-001], [PREC-1]
     in Sonnet's output. Replaces with numbered superscript HTML links.
@@ -592,8 +650,10 @@ def linkify_and_number_citations(text: str, citation_index: dict) -> tuple:
     text = re.sub(r'\[\d+-\d+\]', '', text)  
 
     pattern = re.compile(r'(TI|RR|REJ|IR|RULE|PREC|COMP)-(\d{1,3})')
-    ref_seen  = {}   # label → display number
-    ref_order = []   # (label, info) in first-appearance order
+    # ref_seen  = {}   # label → display number
+    # ref_order = []   # (label, info) in first-appearance order
+    ref_seen: dict = {}
+    ref_order: list = []
 
     def _replace(m):
         prefix    = m.group(1)
@@ -605,7 +665,7 @@ def linkify_and_number_citations(text: str, citation_index: dict) -> tuple:
         info = citation_index.get(label) or citation_index.get(raw_label) or {}
 
         if label not in ref_seen:
-            ref_seen[label] = len(ref_seen) + 1
+            ref_seen[label] = len(ref_seen) + start_n
             ref_order.append((label, info))
 
         n    = ref_seen[label]
@@ -635,10 +695,13 @@ def linkify_and_number_citations(text: str, citation_index: dict) -> tuple:
 
 def render_unified_footnotes(references: list, web_links: list):
     """
-    Single unified footnote panel.
-    references = KG records Sonnet cited: [(label, num, info_dict), ...]
-    web_links  = web URLs Sonnet used:    [(anchor_text, url), ...]
-    Always expanded. Numbered in order of first appearance.
+    Unified footnote panel shown after every answer.
+    
+    references = KG citations: [(label, num, info_dict), ...]
+                 where num is assigned by linkify_and_number_citations
+    web_links  = web citations: [(num, anchor_text, url), ...]
+                 where num is assigned by convert_web_citations_to_numbers
+                 (falls back to old (anchor, url) format for backwards compat)
     """
     if not references and not web_links:
         st.caption("⚠️ No citations found in this answer.")
@@ -647,92 +710,67 @@ def render_unified_footnotes(references: list, web_links: list):
     st.markdown("---")
     st.markdown("#### 📎 Sources")
 
-    counter = 1
-
     # ── KG citations ──────────────────────────────────────────────────────
     for label, num, info in references:
         ctype = info.get("type", "")
 
         if ctype == "trial_instrument":
             trial_str = f"*{info['trial']}*" if info.get("trial") else ""
-            nct_str   = f"`{info['nct']}`"   if info.get("nct", "").startswith("NCT") else ""
+            nct_str   = f"`{info['nct']}`" if info.get("nct", "").startswith("NCT") else ""
             header    = " · ".join(filter(None, [
                 f"**{info.get('instrument','')}**",
-                trial_str,
-                nct_str,
-                info.get("drug",""),
-                info.get("phase",""),
+                trial_str, nct_str,
+                info.get("drug",""), info.get("phase",""),
             ]))
             st.markdown(f"**[{num}]** &nbsp; 🗄️ &nbsp; `{label}` · {header}")
             kf = info.get("key_finding", "")
             if kf and kf not in ("nan", "None", "", "—"):
                 st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#555;font-size:0.9em'>"
-                    f"Key finding: {kf[:200]}</span>",
-                    unsafe_allow_html=True
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#555;font-size:0.9em'>"
+                    f"Key finding: {kf[:200]}</span>", unsafe_allow_html=True
                 )
-            score = info.get("score", "")
-            risk  = info.get("risk", "")
-            role  = info.get("endpoint_role", "")
-            if any([score, risk, role]):
-                meta = " · ".join(filter(None, [
-                    f"Score {score}/100" if score else "",
-                    f"Risk: {risk}"      if risk  else "",
-                    f"Role: {role}"      if role  else "",
-                ]))
+            meta_parts = filter(None, [
+                f"Score {info['score']}/100" if info.get("score") else "",
+                f"Risk: {info['risk']}"      if info.get("risk")  else "",
+                f"Role: {info['endpoint_role']}" if info.get("endpoint_role") else "",
+            ])
+            meta = " · ".join(meta_parts)
+            if meta:
                 st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#888;font-size:0.85em'>{meta}</span>",
-                    unsafe_allow_html=True
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#888;font-size:0.85em'>"
+                    f"{meta}</span>", unsafe_allow_html=True
                 )
 
         elif ctype == "regulatory_review":
             st.markdown(
                 f"**[{num}]** &nbsp; ✅ &nbsp; `{label}` · "
-                f"**{info.get('agency','')}** review · "
-                f"**{info.get('drug','')}** · "
+                f"**{info.get('agency','')}** review · **{info.get('drug','')}** · "
                 f"Decision: {info.get('decision','')}"
             )
             accepted = info.get("instruments_accepted", "")
             if accepted and accepted not in ("nan", "None", ""):
                 st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#555;font-size:0.9em'>"
-                    f"Instruments accepted: {accepted}</span>",
-                    unsafe_allow_html=True
-                )
-            claim = info.get("claim_type", "")
-            if claim and claim not in ("nan", "None", ""):
-                st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#555;font-size:0.9em'>"
-                    f"Claim type: {claim}</span>",
-                    unsafe_allow_html=True
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#555;font-size:0.9em'>"
+                    f"Instruments accepted: {accepted}</span>", unsafe_allow_html=True
                 )
 
         elif ctype == "rejection":
             st.markdown(
                 f"**[{num}]** &nbsp; ⚠️ &nbsp; `{label}` · "
-                f"**{info.get('agency','')}** · "
-                f"**{info.get('drug','')}** · "
+                f"**{info.get('agency','')}** · **{info.get('drug','')}** · "
                 f"Decision: {info.get('decision','')}"
             )
             reason = info.get("primary_reason", "")
             if reason:
                 st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#c0392b;font-size:0.9em'>"
-                    f"❌ Rejection reason: {reason}</span>",
-                    unsafe_allow_html=True
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#c0392b;font-size:0.9em'>"
+                    f"❌ Rejection reason: {reason}</span>", unsafe_allow_html=True
                 )
             detail = info.get("detailed_reason", "")
             if detail and detail not in ("nan", "None", ""):
                 st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;"
-                    f"<span style='color:#888;font-size:0.85em'>"
-                    f"{detail[:250]}</span>",
-                    unsafe_allow_html=True
+                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#888;font-size:0.85em'>"
+                    f"{detail[:250]}</span>", unsafe_allow_html=True
                 )
 
         elif ctype == "instrument_reference":
@@ -742,87 +780,72 @@ def render_unified_footnotes(references: list, web_links: list):
                 f"Domains: {info.get('domains','')} · "
                 f"MCID: {info.get('mcid','—')}"
             )
-        
+
+        elif ctype == "rule":
+            st.markdown(
+                f"**[{num}]** &nbsp; 📜 &nbsp; `{label}` · "
+                f"**{info.get('source','')}** · "
+                f"{info.get('description','')[:200]}"
+            )
+
         elif ctype == "precedent":
             accepted_str = "✅ Accepted" if info.get("accepted") else "🔍 Reviewed"
             st.markdown(
                 f"**[{num}]** &nbsp; `{label}` — {info.get('instrument','')} · "
                 f"{info.get('agency','')} · {info.get('drug','')} · {accepted_str}"
             )
-            claim = info.get("claim_type","")
-            if claim and str(claim) not in ("nan","None",""):
-                st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#555;font-size:0.9em'>"
-                    f"🏷️ Claim type: {claim}</span>",
-                    unsafe_allow_html=True
-                )
-        
+
         elif ctype == "competitor":
             comp_flag = "⚠️ COMPARABILITY REQUIRED" if info.get("comparability_required") else ""
             st.markdown(
                 f"**[{num}]** &nbsp; `{label}` — **{info.get('drug','')}** · "
-                f"{info.get('agency','')} · {info.get('decision','')} "
-                f"{comp_flag}"
+                f"{info.get('agency','')} · {info.get('decision','')} {comp_flag}"
             )
             mech = info.get("mechanism", "")
             if mech:
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#555;font-size:0.9em'>"
-                    f"⚙️ {mech}</span>",
-                    unsafe_allow_html=True
+                    f"⚙️ {mech}</span>", unsafe_allow_html=True
                 )
             instr = info.get("instruments", "")
             if instr and str(instr) not in ("nan", "None", ""):
                 st.markdown(
                     f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#555;font-size:0.9em'>"
-                    f"🎯 PROs used: {instr}</span>",
-                    unsafe_allow_html=True
-                )
-            pq = info.get("pro_implication", "")
-            if pq:
-                st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#378ADD;font-size:0.9em'>"
-                    f"❓ {pq}</span>",
-                    unsafe_allow_html=True
-                )
-            if info.get("comparability_required"):
-                st.markdown(
-                    f"&nbsp;&nbsp;&nbsp;&nbsp;<span style='color:#c0392b;font-size:0.9em'>"
-                    f"⚠️ {info.get('comparability_reason','')}</span>",
-                    unsafe_allow_html=True
+                    f"🎯 PROs used: {instr}</span>", unsafe_allow_html=True
                 )
 
         else:
             st.markdown(f"**[{num}]** &nbsp; `{label}`")
 
-        # Clickable source links for this KG record
+        # Clickable source links
         links = info.get("links", [])
-        if links:
-            link_parts = [
-                f"[{l['label']}]({l['url']})"
-                for l in links
-                if l.get('url', '').startswith('http')   # ← filter here
-            ]
-            if link_parts:                                # ← only render if any valid links remain
-                st.markdown(
-                    "&nbsp;&nbsp;&nbsp;&nbsp;"
-                    + " &nbsp;·&nbsp; ".join(link_parts)
+        valid_links = [l for l in links if l.get("url","").startswith("http")]
+        if valid_links:
+            st.markdown(
+                "&nbsp;&nbsp;&nbsp;&nbsp;"
+                + " &nbsp;·&nbsp; ".join(
+                    f"[{l['label']}]({l['url']})" for l in valid_links
                 )
+            )
 
         st.markdown(
             "<hr style='margin:6px 0;border:none;border-top:1px solid #eee'>",
             unsafe_allow_html=True
         )
-        counter += 1
 
     # ── Web citations ─────────────────────────────────────────────────────
-    for anchor, url in web_links:
-        st.markdown(f"**[{counter}]** &nbsp; 🌐 &nbsp; [{anchor}]({url})")
+    for item in web_links:
+        # Support both (num, anchor, url) and legacy (anchor, url) formats
+        if len(item) == 3:
+            num, anchor, url = item
+        else:
+            anchor, url = item
+            num = "?"
+        st.markdown(f"**[{num}]** &nbsp; 🌐 &nbsp; [{anchor}]({url})")
         st.markdown(
             "<hr style='margin:6px 0;border:none;border-top:1px solid #eee'>",
             unsafe_allow_html=True
         )
-        counter += 1
 
 
 # =============================================================================
@@ -916,23 +939,45 @@ def build_search_terms(indication: str) -> list[str]:
         layer1 = [indication]
 
     # Layer 2: Haiku generates up to 5 extra synonyms
-    try:
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=150,
-            system=(
-                "Generate up to 5 common synonyms, abbreviations, and alternate spellings "
-                "for this medical indication as used in clinical trial databases. "
-                "Return ONLY a JSON array of strings. No explanation."
-            ),
-            messages=[{"role": "user", "content": indication}]
-        )
-        raw = resp.content[0].text.strip().replace("```json", "").replace("```", "")
-        layer2 = json.loads(raw)
-        if not isinstance(layer2, list):
+    # try:
+    #     resp = client.messages.create(
+    #         model="claude-haiku-4-5-20251001",
+    #         max_tokens=150,
+    #         system=(
+    #             "Generate up to 5 common synonyms, abbreviations, and alternate spellings "
+    #             "for this medical indication as used in clinical trial databases. "
+    #             "Return ONLY a JSON array of strings. No explanation."
+    #         ),
+    #         messages=[{"role": "user", "content": indication}]
+    #     )
+    #     raw = resp.content[0].text.strip().replace("```json", "").replace("```", "")
+    #     layer2 = json.loads(raw)
+    #     if not isinstance(layer2, list):
+    #         layer2 = []
+    # except Exception:
+    #     layer2 = []
+
+    # Layer 2: Haiku generates synonyms ONLY when KG_KNOWN_VALUES had no match.
+    # If Layer 1 already found exact stored values, Haiku cannot improve on them.
+    layer2 = []
+    if not layer1 or layer1 == [indication]:
+        # Either nothing was found, or we only have the raw string — Haiku can help
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=150,
+                system=(
+                    "Generate up to 5 common synonyms, abbreviations, and alternate "
+                    "spellings for this medical indication as used in clinical trial "
+                    "databases. Return ONLY a JSON array of strings. No explanation."
+                ),
+                messages=[{"role": "user", "content": indication}]
+            )
+            raw    = resp.content[0].text.strip().replace("```json","").replace("```","")
+            layer2 = json.loads(raw) if isinstance(json.loads(raw), list) else []
+        except Exception:
             layer2 = []
-    except Exception:
-        layer2 = []
+    # else: Layer 1 has exact KG values — no Haiku needed
 
     # Merge and deduplicate, preserving order
     seen = set()
@@ -942,145 +987,6 @@ def build_search_terms(indication: str) -> list[str]:
             seen.add(t)
             result.append(t)
     return result
-
-
-# =============================================================================
-# DIRECT SONNET FOR FACTUAL QUERIES (Tier 1 and Tier 2)
-# =============================================================================
-
-# def answer_direct(
-#     user_message: str,
-#     history: list,
-#     indication: str = "",
-#     prior_result: dict = None
-# ) -> str:
-#     """
-#     Answer a simple factual or follow-up question using Sonnet + web search.
-#     Optionally enriched with KG lookup for the current indication.
-#     """
-#     # Try a quick KG lookup if we have an indication
-#     kg_context = ""
-#     if indication and AGENT_AVAILABLE:
-#         try:
-#             terms = build_search_terms(indication)
-#             records = []
-#             for term in terms[:3]:
-#                 r = get_instruments_by_indication(indication=term, phase="")
-#                 records.extend(r)
-#             if records:
-#                 names = list({r.get("instrument_name", "") for r in records
-#                               if r.get("instrument_name")})
-#                 kg_context = (
-#                     f"\n\nKnowledge graph data for '{indication}': "
-#                     f"instruments found across {len(records)} precedent records: "
-#                     f"{', '.join(names[:15])}."
-#                 )
-#         except Exception:
-#             pass
-
-#     # If there's a prior strategy, summarise it for context
-#     strategy_ctx = ""
-#     if prior_result:
-#         battery = prior_result.get("battery_result", {}).get("battery_names", [])
-#         ctx     = prior_result.get("context_json", {})
-#         strategy_ctx = (
-#             f"\n\nThe most recent strategy recommendation was for: "
-#             f"{ctx.get('indication', '')} {ctx.get('phase', '')} "
-#             f"{ctx.get('drug_class', '')}. "
-#             f"Recommended battery: {', '.join(battery)}."
-#         )
-
-#     # Build message list from history (last 6 turns max)
-#     messages = []
-#     for m in history[-6:]:
-#         if m["role"] in ("user", "assistant"):
-#             messages.append({
-#                 "role": m["role"],
-#                 "content": m["content"][:600]  # truncate long assistant turns
-#             })
-#     messages.append({
-#         "role": "user",
-#         "content": user_message + kg_context + strategy_ctx
-#     })
-
-#     try:
-#         resp = client.messages.create(
-#             model="claude-sonnet-4-20250514",
-#             max_tokens=2000,
-#             system=(
-#                 "You are a knowledgeable COA and PRO specialist. "
-#                 "Answer concisely and accurately. "
-#                 "Cite every factual claim as a markdown hyperlink: "
-#                 "[Source Name](https://full-url.com). "
-#                 "If you don't know something, say so clearly."
-#             ),
-#             tools=[{"type": "web_search_20250305", "name": "web_search"}],
-#             messages=messages
-#         )
-#         return " ".join(
-#             b.text for b in resp.content if hasattr(b, "text") and b.text
-#         )
-#     except Exception as e:
-#         return f"Could not process query: {e}"
-
-# def answer_direct(user_message: str, history: list, indication: str = None, prior_result: dict = None):
-#     """
-#     Answer a simple factual or follow-up question using Sonnet + web search.
-#     Optionally enriched with KG lookup for the current indication.
-#     Yields text chunks as they are generated, token by token
-#     """
-#     kg_context = ""
-#     if indication and AGENT_AVAILABLE:
-#         try:
-#             terms = build_search_terms(indication)
-#             records = []
-#             for term in terms[:3]:
-#                 r = get_instruments_by_indication(indication=term, phase="")
-#                 records.extend(r)
-#             if records:
-#                 names = list({r.get("instrument_name") for r in records if r.get("instrument_name")})
-#                 kg_context = (
-#                     f"\n\nKG data for {indication}: {len(records)} precedent records found. "
-#                     f"Instruments: {', '.join(names[:15])}."
-#                 )
-#         except Exception:
-#             pass
-
-#     strategy_ctx = ""
-#     if prior_result:
-#         battery = prior_result.get("battery_result", {}).get("battery_names", [])
-#         ctx = prior_result.get("context_json", {})
-#         strategy_ctx = (
-#             f"\n\nMost recent strategy was for {ctx.get('indication')} {ctx.get('phase')} "
-#             f"{ctx.get('drug_class')}. Recommended battery: {', '.join(battery)}."
-#         )
-
-#     messages = []
-#     for m in (history or [])[-6:]:
-#         if m["role"] in ("user", "assistant"):
-#             messages.append({"role": m["role"], "content": m["content"][:600]})
-#     messages.append({"role": "user", "content": user_message + kg_context + strategy_ctx})
-
-#     try:
-#         with client.messages.stream(
-#             model="claude-sonnet-4-20250514",
-#             max_tokens=2000,
-#             system=(
-#                 "You are a knowledgeable COA and PRO specialist. "
-#                 "Answer concisely and accurately. "
-#                 "For EVERY factual claim, cite the source as a markdown hyperlink inline, "
-#                 "e.g. [EORTC QLQ-C30 manual](https://www.eortc.org/...). "
-#                 "If a claim comes from a KG record, say 'per KG evidence'. "
-#                 "If you cannot find a URL, say 'source not verified'. "
-#                 "Never state a fact without a citation."
-#             ),
-#             tools=[{"type": "web_search_20250305", "name": "web_search"}],
-#             messages=messages,
-#         ) as stream:
-#             for text in stream.text_stream:
-#                 yield text
-#     except Exception as e:
-#         yield f"Could not process query: {e}"
 
 def answer_direct(user_message: str, history: list,
                   indication: str = None,
@@ -1242,6 +1148,11 @@ meta-analyses, and any field-wide claim.
 Search PubMed, ClinicalTrials.gov, ISPOR, EORTC, fda.gov, \
 ema.europa.eu, proqolid.org, ispor.org, nice.org.uk.
 
+SEARCH LIMIT: Maximum 5 web searches total per answer. \
+Choose the 5 most important queries. After 5 searches, write the answer. \
+Do not search the same source twice. \
+Total answer must be under 2000 words — be concise and direct.
+
 Cite every web-sourced sentence as a markdown hyperlink immediately \
 after the sentence — the tool always returns a URL, so one must \
 always exist:
@@ -1306,13 +1217,16 @@ KG RECORDS AVAILABLE FOR THIS QUERY
             messages.append({"role": m["role"], "content": m["content"][:600]})
     messages.append({
         "role":    "user",
-        "content": user_message + (f"\n\n{strategy_ctx}" if strategy_ctx else "")
+        "content": user_message + (f"\n\n{strategy_ctx}" if strategy_ctx else "") +
+                   (f"\n\nIMPORTANT: You MUST cite at least 2 KG records using [TI-XXX] labels "
+                    f"if the KG section above contains relevant records for this question."
+                    if kg_context else "")
     })
 
     try:
         with client.messages.stream(
             model      = "claude-sonnet-4-20250514",
-            max_tokens = 1000,
+            max_tokens = 3000,
             system     = system_prompt,
             tools      = [{"type": "web_search_20250305", "name": "web_search"}],
             messages   = messages,
@@ -1332,7 +1246,7 @@ def render_strategy_result(answer: str, result: dict, msg_idx: int) -> None:
     Shows battery cards, linked recommendation text, scoring detail, and references.
     """
     ctx            = result.get("context_json", {})
-    battery        = result.get("battery_result", {})
+    coverage       = result.get("coverage", {})
     citation_index = result.get("citation_index", {})
     top_scores     = result.get("top_scores", [])
     kg_records     = result.get("kg_raw_hits", [])
@@ -1368,72 +1282,93 @@ def render_strategy_result(answer: str, result: dict, msg_idx: int) -> None:
                 f"{', '.join(ctx.get('core_domains_required', []))}"
             )
 
-    # ── Battery cards ────────────────────────────────────────────────────────
-    battery_list = battery.get("battery", [])
-    if battery_list:
-        st.markdown(
-            f"**Recommended COA Battery** — "
-            f"covers {len(battery.get('covered_domains', []))} of "
-            f"{len(ctx.get('core_domains_required', []))} required domains"
-        )
-        st.caption(
-            "🟢 LOW · 🟡 MODERATE · 🟠 HIGH · 🔴 CRITICAL — "
-            "Risk Level is independent of score. "
-            "HTA-required instruments show LOW risk because the risk is in OMITTING them, "
-            "not including them."
-        )
-        for b in battery_list:
-            role   = b.get("battery_role", "")
-            is_hta = "HTA Required" in role
-            card   = "battery-hta" if is_hta else "battery-card"
-            ecoa   = "📱" if any(
-                "+10" in f and "ecoa" in f.lower() for f in b.get("flags", [])
-            ) else "📄"
-
-            # Operational breakdown
-            op_parts = []
-            for f in b.get("flags", []):
-                fl = f.lower()
-                if "ecoa ready (+10" in fl:
-                    op_parts.append("+10 eCOA")
-                if "open access (+5" in fl:
-                    op_parts.append("+5 open access")
-                if "language data unavailable" in fl:
-                    op_parts.append("−10 lang")
-                if "language coverage note" in fl:
-                    op_parts.append("−5 lang")
-            op_str = " · ".join(op_parts) if op_parts else ""
-
-            st.markdown(
-                f'<div class="{card}">'
-                f'<div class="battery-role">{role}</div>'
-                f'{ecoa} <b>{b["instrument_name"]}</b> &nbsp;'
-                f'{risk_badge(b["risk_level"])} &nbsp;'
-                f'<span style="font-size:0.83rem">'
-                f'Score: {b["scientific_score"]}/100'
-                + (f' · {op_str}' if op_str else '')
-                + '</span>'
-                + (f'<br><span style="font-size:0.80rem;color:#555">'
-                   f'{b.get("battery_note","")}</span>'
-                   if b.get("battery_note") else "")
-                + '</div>',
-                unsafe_allow_html=True
+    # ── Coverage summary ─────────────────────────────────────────────────────
+    # Show HTA mandatory warnings and item library note if applicable.
+    # The full comparison tables appear in the main recommendation text below.
+    hta_mandatory = coverage.get("hta_mandatory", [])
+    if hta_mandatory:
+        for h in hta_mandatory:
+            st.warning(
+                f"⚠️ **HTA Requirement:** {h['instrument']} must be added for "
+                f"**{h['market']}** — {h['reason']}"
             )
 
-        if battery.get("gaps"):
-            st.warning(
-                f"⚠️ Domain coverage gap: no instrument found for "
-                f"**{', '.join(battery['gaps'])}**. "
-                f"The Reasoner was instructed to search the web for instruments "
-                f"covering these domains."
+    if coverage.get("item_library_applicable"):
+        st.info(
+            "ℹ️ **Item library note:** Comparator trials in the knowledge graph used "
+            "subscale or item-library approaches rather than full instruments. "
+            "The COA expert should consider whether a calibrated PRO Schedule of "
+            "Assessments (SOA) is appropriate for this trial."
+        )
+
+    # Domain coverage summary (compact, expandable)
+    domain_rows = coverage.get("domains", [])
+    if domain_rows:
+        with st.expander(
+            f"📋 Domain coverage overview — {len([d for d in domain_rows if d['candidates']])} of "
+            f"{len(domain_rows)} domains have candidate instruments",
+            expanded=False
+        ):
+            for d in domain_rows:
+                top = d["candidates"][0] if d["candidates"] else None
+                icon = "✅" if top else "❌"
+                core_tag = " *(FDA core)*" if d.get("is_fda_core") else ""
+                if top:
+                    st.markdown(
+                        f"{icon} **{d['domain']}{core_tag}** — "
+                        f"top candidate: {top['instrument']} "
+                        f"(score {top['score']}, change detected: {top['change_detected']})"
+                    )
+                else:
+                    st.markdown(f"{icon} **{d['domain']}{core_tag}** — no candidate found")
+                if d.get("item_library_note"):
+                    st.caption(d["item_library_note"])
+            
+            st.caption(
+            "Interpretation of change flags: "
+            "✅ Y = at least one PRO domain/timepoint in the KG trial sample shows a statistically significant "
+            "improvement favouring the investigational arm; "
+            "❌ NR = no PRO change signal is reported in the KG for this instrument in these trials; "
+            "⚠️ Partial = mixed signal (some domains/timepoints or analysis methods show improvement, others do not)."
+        )
+    
+    # --- Regulatory rules (from KG) ---
+    reg_rules = result.get("regrules", [])
+    if reg_rules:
+        with st.expander(
+            f"Regulatory rules for instrument selection ({len(reg_rules)})",
+            expanded=False,
+        ):
+            rows = []
+            for i, r in enumerate(reg_rules, 1):
+                rows.append({
+                    "Label": f"RULE-{i:03d}",
+                    "Decision type": (r.get("decision_type") or "").upper(),
+                    "Source document": r.get("source_document", ""),
+                    "Rule text": (r.get("rule_text", "") or "")[:300],
+                })
+            df_rules = pd.DataFrame(rows)
+            st.dataframe(df_rules, use_container_width=True)
+            csv = df_rules.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download regulatory rules as CSV",
+                data=csv,
+                file_name="regulatory_rules.csv",
+                mime="text/csv",
+                use_container_width=True,
             )
 
     # ── Main recommendation text (citations linkified) ───────────────────────
+    # Step 1: number KG citations [TI-001] → [1], [2], ...
     linked_text, references = linkify_and_number_citations(answer, citation_index)
-    st.markdown(linked_text, unsafe_allow_html=True)
 
-    web_links = extract_web_links(answer)
-    render_unified_footnotes(references, web_links)
+    # Step 2: number web citations [Source](url) → [N], continuing from KG numbers
+    final_text, web_footnotes = convert_web_citations_to_numbers(
+        linked_text, start_n=len(references) + 1
+    )
+
+    st.markdown(final_text, unsafe_allow_html=True)
+    render_unified_footnotes(references, web_footnotes)
     render_kg_evidence_cards(result)
 
     suspicious = audit_uncited_sentences(answer)
@@ -1487,9 +1422,15 @@ practical barriers, not regulatory criteria, and mixing them into the score
 would be misleading.
                 """)
 
+            # Build set of candidate instruments from coverage domains for label
+            coverage_candidates = {
+                c["instrument"]
+                for d in coverage.get("domains", [])
+                for c in d.get("candidates", [])
+            }
             for inst in top_scores:
-                in_battery = inst["instrument_name"] in battery.get("battery_names", [])
-                label_sfx  = " 🟢 In recommended battery" if in_battery else ""
+                in_coverage = inst["instrument_name"] in coverage_candidates
+                label_sfx   = " 🟢 Top candidate" if in_coverage else ""
                 with st.expander(
                     f"{inst['instrument_name']}{label_sfx} — "
                     f"Score: {inst['scientific_score']}/100 — "
@@ -1559,9 +1500,65 @@ would be misleading.
                             html = build_source_links_html(rec)
                             if html:
                                 st.markdown(html, unsafe_allow_html=True)
+    
+    gap_rows = result.get("gap_analysis", [])
+    if gap_rows:
+        with st.expander("Instrument gap analysis (evidence & fit-for-purpose)", expanded=False):
+            df_gap = pd.DataFrame(gap_rows)
+            st.dataframe(df_gap, use_container_width=True)
+            csv = df_gap.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download gap analysis as CSV",
+                data=csv,
+                file_name="instrument_gap_analysis.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+    
+    ep_rows = result.get("endpoint_positioning", [])
+    if ep_rows:
+        with st.expander("Endpoint positioning across KG trials (top instruments)", expanded=False):
+            df_ep = pd.DataFrame(ep_rows)
+            st.dataframe(df_ep, use_container_width=True)
+            st.caption(
+                "Counts reflect the curated KG sample for this indication, not all trials globally. "
+                "Use as examples of how these instruments have been positioned in practice."
+            )
+            csv = df_ep.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download endpoint positioning as CSV",
+                data=csv,
+                file_name="endpoint_positioning.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+    pro_measures = result.get("pro_measures", [])
+    if pro_measures:
+        with st.expander("PRO measures comparison (Table 2)", expanded=False):
+            df_pro = pd.DataFrame(pro_measures)
+            st.dataframe(df_pro, use_container_width=True)
+            st.caption(
+                "This table shows how PRO instruments were combined and positioned in comparator trials "
+                "within the curated knowledge graph sample for this indication. It is intended to illustrate "
+                "practical precedent, not to estimate field-wide prevalence or frequency."
+            )
+            csv = df_pro.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "Download PRO measures comparison as CSV",
+                data=csv,
+                file_name="pro_measures_comparison.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
 
-    # ── Language status per battery instrument ────────────────────────────────
-    if battery_list and ctx.get("geographic_footprint"):
+    # ── Language status per candidate instruments ─────────────────────────────
+    # Show for top-scored instrument per domain if geographic footprint is known
+    candidate_names = list({
+        c["instrument"]
+        for d in coverage.get("domains", [])
+        for c in d.get("candidates", [])[:1]  # only top candidate per domain
+    })
+    if candidate_names and ctx.get("geographic_footprint"):
         with st.expander(
             "🌐 Language and translation status per instrument", expanded=False
         ):
@@ -1573,15 +1570,15 @@ would be misleading.
             reg_note  = geo.get("regulatory_note", "")
             ref       = geo.get("reference", "")
 
-            for b in battery_list:
-                inst_lower = b["instrument_name"].lower()
+            for inst_name in candidate_names[:5]:
+                inst_lower = inst_name.lower()
                 lang_count = next(
                     (v for k, v in KNOWN_LANGUAGE_COUNTS.items() if k in inst_lower),
                     0
                 )
                 if lang_count == 0:
                     for rec in kg_records:
-                        if rec.get("instrument_name") == b["instrument_name"]:
+                        if rec.get("instrument_name") == inst_name:
                             raw = rec.get("languages", "")
                             if isinstance(raw, list):
                                 lang_count = len([x for x in raw if x])
@@ -1590,7 +1587,6 @@ would be misleading.
                                     [x for x in str(raw).split("|") if x.strip()]
                                 )
                             break
-
                 if lang_count >= 50:
                     icon = "✅"
                     note = f"~{lang_count} validated translations — strong global coverage."
@@ -1604,22 +1600,16 @@ would be misleading.
                     icon = "⚠️"
                     note = (
                         f"~{lang_count} translations found. "
-                        f"Commission additional translations for trial sites. "
-                        f"Typically 6–12 months [ISPOR ePRO Task Force, 2009]."
+                        f"Commission additional translations for trial sites."
                     )
                 else:
                     icon = "⚠️"
-                    note = (
-                        "Language data unavailable. "
-                        "Verify via PROQOLID (proqolid.org) or instrument developer."
-                    )
-
+                    note = "Language data unavailable — verify via PROQOLID."
                 st.markdown(
                     f'<div style="border:1px solid #AFA9EC;background:#eeedfe;'
                     f'border-radius:6px;padding:8px 12px;margin:4px 0;font-size:0.85rem">'
-                    f'{icon} <b>{b["instrument_name"]}</b><br>'
-                    f'<span>{note}<br>'
-                    f'<small>{reg_note} ({ref})</small></span></div>',
+                    f'{icon} <b>{inst_name}</b><br>'
+                    f'<span>{note}</span></div>',
                     unsafe_allow_html=True
                 )
 
@@ -1698,6 +1688,7 @@ with st.sidebar:
             file_name=f"coa_session_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
             mime="text/plain",
             use_container_width=True,
+            key=f"dl_{len(st.session_state.get('messages', []))}",  # unique key per message count
             help="Download the full conversation (all tiers) as a plain-text file.",
         )
     else:
@@ -1845,41 +1836,17 @@ if prompt:
 
     with st.chat_message("assistant"):
 
-        # ── TIER 1 / TIER 2: Direct Sonnet answer ────────────────────────────
-        # if tier in ("TIER_1_FACTUAL", "TIER_2_FOLLOWUP"):
-        #     prior_result = (
-        #         st.session_state.results.get(st.session_state.last_strategy_idx)
-        #         if has_prior else None
-        #     )
-        #     indication = (
-        #         sb_indication
-        #         or (prior_result.get("context_json", {}).get("indication", "")
-        #             if prior_result else "")
-        #     )
-        #     with st.spinner("Searching…"):
-        #         answer = answer_direct(
-        #             user_message=prompt + sidebar_ctx,
-        #             history=st.session_state.messages[:-1],
-        #             indication=indication,
-        #             prior_result=prior_result
-        #         )
-
-        #     # Linkify against prior citation index if available
-        #     ci = (
-        #         prior_result.get("citation_index", {})
-        #         if prior_result else {}
-        #     )
-        #     linked, refs = linkify_and_number_citations(answer, ci)
-        #     st.markdown(linked)
-        #     render_reference_list(refs, ci)
-
-        #     msg_idx = len(st.session_state.messages)
-        #     st.session_state.messages.append({"role": "assistant", "content": answer})
 
         # ── TIER 1 / TIER 2: Direct Sonnet answer ────────────────────────────
         if tier in ("TIER1_FACTUAL", "TIER2_FOLLOWUP"):
-            prior_result = (st.session_state.results.get(st.session_state.last_strategy_idx)
-                            if has_prior else None)
+            # Tier 2 (follow-up) gets prior strategy context — they are asking about it.
+            # Tier 1 (factual) gets no prior context — general questions should not
+            # be coloured by the current trial strategy.
+            prior_result = (
+                st.session_state.results.get(st.session_state.last_strategy_idx)
+                if (has_prior and tier == "TIER2_FOLLOWUP")
+                else None
+            )
             indication = (
                 sb_indication
                 or (prior_result.get("context_json", {}).get("indication") if prior_result else None)
@@ -1928,23 +1895,6 @@ if prompt:
                 except Exception:
                     prior_index = {}
 
-            # If a prior strategy exists, reuse its citation index (it has richer data).
-            # Otherwise build a fresh one from the KG for this specific indication.
-            prior_index = (
-                st.session_state.results
-                .get(st.session_state.last_strategy_idx, {})
-                .get("citation_index", {})
-            )
-            if not prior_index and indication and AGENT_AVAILABLE:
-                # Build a fresh citation index so KG records get [TI-XXX] labels
-                # that Sonnet can actually cite
-                try:
-                    prior_index = build_tier1_citation_index(
-                        indication=indication, phase=""
-                    )
-                except Exception as _ci_err:
-                    prior_index = {}
-
             full_response = ""
             with st.chat_message("assistant"):
                 placeholder = st.empty()
@@ -1959,9 +1909,13 @@ if prompt:
                     placeholder.markdown(full_response + "▌")
                 placeholder.markdown(full_response)
 
-                linked, refs = linkify_and_number_citations(full_response, prior_index)
-                web_links    = extract_web_links(full_response)
-                render_unified_footnotes(refs, web_links)
+                linked, refs   = linkify_and_number_citations(full_response, prior_index)
+                final, web_fns = convert_web_citations_to_numbers(
+                    linked, start_n=len(refs) + 1
+                )
+                # Re-render with numbered citations
+                placeholder.markdown(final, unsafe_allow_html=True)
+                render_unified_footnotes(refs, web_fns)
 
             msg_idx = len(st.session_state.messages)
             st.session_state.messages.append({
@@ -1976,151 +1930,85 @@ if prompt:
 
         # ── TIER 3: Full strategy pipeline ────────────────────────────────────
         else:
-            # Check if clarifying questions needed
-            missing = routing.get("missing_critical", [])
-            if missing and not sidebar_ctx:
-                # Ask one focused clarifying question before running pipeline
-                question_map = {
-                    "phase":               (
-                        "What trial phase is this? "
-                        "(Phase 1 / 2 / 3) — this affects the estimand burden "
-                        "and pre-specification requirements."
-                    ),
-                    "geographic_footprint": (
-                        "Is this a global trial seeking both FDA and EMA approval, "
-                        "EU-only, or US-only? "
-                        "This affects which HTA instruments are mandatory and "
-                        "what translation coverage is needed."
-                    ),
-                    "drug_class":          (
-                        "What is the drug mechanism? "
-                        "(e.g. bispecific antibody, proteasome inhibitor, ICI, ADC) "
-                        "This determines which mechanism-specific toxicities "
-                        "the PRO battery needs to capture."
-                    ),
-                    "indication":          (
-                        "What cancer type / indication is this trial for?"
-                    ),
-                }
-                top_missing = missing[0].lower()
-                question = next(
-                    (q for k, q in question_map.items() if k in top_missing),
-                    f"Could you clarify: {missing[0]}?"
-                )
+            # Step 1 — extract context from the user's message
+            _raw_ctx = analyze_trial_context(prompt)
+
+            # Step 2 — fill gaps with sidebar values (only for fields Haiku couldn't extract)
+            full_prompt = build_structured_prompt(
+                prompt, _raw_ctx,
+                sb_indication, sb_phase, sb_drug_class,
+                sb_admin, sb_population, sb_hta, sb_footprint
+            )
+
+            # Step 3 — re-extract with enriched prompt (sidebar gaps now filled)
+            _ctx        = analyze_trial_context(full_prompt)
+            _indication = _ctx.get("indication", "unknown")
+            _drug_class = _ctx.get("drug_class", "Unknown")
+
+            # Step 4 — if still too vague, ask one focused clarifying question and stop.
+            # User must provide more info. This only fires when indication is truly unknown.
+            if _indication == "unknown" or (_drug_class in ["Unknown", "", None] and not sb_drug_class):
+                _question = build_clarification_question(_ctx)
                 st.markdown(
-                    f'<div class="clarify-box">💬 Before I build the full strategy, '
-                    f'one thing would significantly affect the recommendation:<br><br>'
-                    f'<b>{question}</b><br><br>'
-                    f'<small>You can also fill this in the sidebar and re-send your '
-                    f'message, or continue and I will make a reasonable inference '
-                    f'and flag it as an assumption.</small></div>',
+                    f'<div class="clarify-box">💬 {_question}</div>',
                     unsafe_allow_html=True
                 )
-                answer   = f"[Clarification requested: {question}]"
-                msg_idx  = len(st.session_state.messages)
                 st.session_state.messages.append(
-                    {"role": "assistant", "content": answer}
+                    {"role": "assistant", "content": _question}
                 )
-
-#             else:
-#                 # Run full pipeline
-#                 full_prompt = build_structured_prompt(
-#                 prompt, sb_indication, sb_phase, sb_drug_class,
-#                 sb_admin, sb_population, sb_hta, sb_footprint
-# )
-
-#                 # Live step tracker
-#                 steps = [
-#                     {"label": "Analyzing trial context",          "status": "running"},
-#                     {"label": "Querying knowledge graph",          "status": "pending"},
-#                     {"label": "Scoring and battery optimisation",  "status": "pending"},
-#                     {"label": "Synthesising recommendation",       "status": "pending"},
-#                 ]
-#                 step_ph = st.empty()
-#                 step_ph.markdown(render_steps(steps), unsafe_allow_html=True)
-
-#                 result = get_recommendation(full_prompt)
 
             else:
-                # Step 1 — extract context from raw chat message only
-                _raw_ctx = analyze_trial_context(prompt)
+                # Step 5 — show what was extracted and what was inferred.
+                # Informational only — pipeline runs immediately after.
+                # User can correct inferences by sending a new message.
+                _show_confirmation_card(_ctx)
 
-                # Step 2 — build enriched prompt (sidebar fills gaps only)
-                full_prompt = build_structured_prompt(
-                    prompt, _raw_ctx,
-                    sb_indication, sb_phase, sb_drug_class,
-                    sb_admin, sb_population, sb_hta, sb_footprint
-                )
-
-                # Step 3 — re-extract context from enriched prompt
-                _pre_ctx     = analyze_trial_context(full_prompt)
-                _indication  = _pre_ctx.get("indication", "unknown")
-                _drug_class  = _pre_ctx.get("drug_class", "Unknown")
-                _assumptions = _pre_ctx.get("assumptions_made", [])
-
-                # Step 4 — pre-check: ask clarifying question if still too vague
-                _needs_clarify = (
-                    _indication == "unknown" or
-                    (len(_assumptions) >= 4 and _drug_class in ["Unknown", "", None])
-                )
-                if _needs_clarify:
-                    _question = build_clarification_question(_pre_ctx)
-                    _clarify_html = (
-                        f'<div class="clarify-box">'
-                        f'Before I build the full strategy, one thing would significantly '
-                        f'affect the recommendation:<br><br>'
-                        f'<b>{_question}</b><br><br>'
-                        f'<small>You can also fill this in the sidebar and re-send your '
-                        f'message, or continue and I will make a reasonable inference '
-                        f'and flag it as an assumption.</small></div>'
-                    )
-                    st.markdown(_clarify_html, unsafe_allow_html=True)
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": _question}
-                    )
-                    st.stop()
-
-                # Step 5 — full pipeline with live step tracker
+                # Step 6 — run full pipeline
                 steps = [
-                    {"label": "Analyzing trial context",         "status": "running"},
-                    {"label": "Querying knowledge graph",         "status": "pending"},
-                    {"label": "Scoring and battery optimisation", "status": "pending"},
-                    {"label": "Synthesising recommendation",      "status": "pending"},
+                    {"label": "Analyzing trial context",               "status": "running"},
+                    {"label": "Querying knowledge graph",               "status": "pending"},
+                    {"label": "Scoring instruments and coverage analysis", "status": "pending"},
+                    {"label": "Synthesising recommendation",            "status": "pending"},
                 ]
                 step_ph = st.empty()
                 step_ph.markdown(render_steps(steps), unsafe_allow_html=True)
 
+                # Live Neo4j check — do not rely on sidebar cached status
+                _neo4j_live = check_neo4j()
+                if _neo4j_live != "connected":
+                    st.error(
+                        "🔴 **Neo4j is not connected.** "
+                        "The strategy recommendation requires the knowledge graph. "
+                        "Please reconnect at [console.neo4j.io](https://console.neo4j.io) "
+                        "and try again. "
+                        f"Error: {_neo4j_live}"
+                    )
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": "⚠️ Knowledge graph offline — cannot generate strategy. Please reconnect Neo4j."
+                    })
+                    st.stop()
+
+
                 result = get_recommendation(full_prompt)
 
-                # Update step statuses
-                steps[0]["status"] = "complete"
-                steps[0]["detail"] = (
-                    f"{result.get('context_json', {}).get('indication', '')} · "
-                    f"{result.get('context_json', {}).get('phase', '')}"
-                )
-                steps[1]["status"] = (
-                    "error"
-                    if result.get("error_status") and
-                    "offline" in str(result.get("error_status", ""))
-                    else "complete"
-                )
-                counts = result.get("record_counts", {})
-                steps[1]["detail"] = (
-                    f"{counts.get('instrument_records', 0)} instruments · "
-                    f"{counts.get('regulatory_reviews', 0)} reviews"
-                )
-                steps[2]["status"] = "complete"
-                steps[2]["detail"] = (
-                    f"{counts.get('scored_instruments', 0)} scored · "
-                    f"battery: "
-                    f"{', '.join(result.get('battery_result', {}).get('battery_names', []))}"
-                )
-                steps[3]["status"] = (
-                    "complete" if result.get("answer") else "error"
-                )
-                steps[3]["detail"] = f"{len(result.get('answer', ''))} chars"
+                steps[0] = {**steps[0], "status": "complete",
+                            "detail": f"{_ctx.get('indication','')} · {_ctx.get('phase','')}"}
+                steps[1] = {**steps[1],
+                            "status": "error" if result.get("error_status") and
+                            "offline" in str(result.get("error_status","")) else "complete",
+                            "detail": f"{result.get('record_counts',{}).get('instrument_records',0)} instruments · "
+                                      f"{result.get('record_counts',{}).get('regulatory_reviews',0)} reviews"}
+                _cov  = result.get("coverage", {})
+                _nd   = len([d for d in _cov.get("domains", []) if d.get("candidates")])
+                _ntot = len(_cov.get("domains", []))
+                steps[2] = {**steps[2], "status": "complete",
+                            "detail": f"{result.get('record_counts',{}).get('scored_instruments',0)} scored · "
+                                      f"{_nd}/{_ntot} domains covered"}
+                steps[3] = {**steps[3],
+                            "status": "complete" if result.get("answer") else "error",
+                            "detail": f"{len(result.get('answer',''))} chars"}
                 step_ph.markdown(render_steps(steps), unsafe_allow_html=True)
-
                 step_ph.empty()
 
                 if result.get("error_status"):
@@ -2128,11 +2016,7 @@ if prompt:
 
                 answer  = result.get("answer", "No recommendation generated.")
                 msg_idx = len(st.session_state.messages)
-
                 st.session_state.results[msg_idx]  = result
                 st.session_state.last_strategy_idx = msg_idx
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": answer}
-                )
-
+                st.session_state.messages.append({"role": "assistant", "content": answer})
                 render_strategy_result(answer, result, msg_idx)

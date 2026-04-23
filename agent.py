@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from anthropic import Anthropic, tools
+from anthropic import Anthropic
 from dotenv import load_dotenv
 from graph import Neo4jConnection
 
@@ -66,7 +66,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s — %(levelname)s — %(message)s"
 )
-
 
 # =============================================================================
 # CONSTANTS — INDICATION-SPECIFIC CORE DOMAINS
@@ -236,7 +235,6 @@ INSTRUMENT_RECALL_PERIODS = {
     "sf-12": 28,
 }
 
-
 # =============================================================================
 # CONSTANTS — KNOWN LANGUAGE COUNTS (approximate, for reporting)
 # Sources: instrument developer documentation and published translations registries
@@ -268,39 +266,46 @@ KNOWN_LANGUAGE_COUNTS = {
 # Allows broad instruments stored as "HRQoL" to match "physical function" etc.
 # Source: FDA (2021) Core PRO Guidance domain definitions
 # =============================================================================
+# DOMAIN_SYNONYMS = {
+#     "bone pain": ["pain", "nrs", "bpi", "musculoskeletal", "skeletal"],
+#     "physical function": ["physical", "function", "activity", "mobility", "performance", "adl", "karnofsky"],
+#     "fatigue": ["fatigue", "tiredness", "energy", "exhaustion", "asthenia", "vitality"],
+#     "dyspnea": ["dyspnea", "breathlessness", "breathing", "respiratory", "shortness of breath"],
+#     "cough": ["cough", "respiratory", "pulmonary"],
+#     "pain": ["pain", "analgesic", "bpi", "nrs", "aches", "discomfort", "bone"],
+#     "nausea": ["nausea", "vomiting", "gi", "gastrointestinal", "emesis"],
+#     "urinary function": ["urinary", "urology", "bladder", "ipss", "micturition"],
+#     "emotional function": ["emotional", "anxiety", "depression", "psychological", "mental", "hads", "phq"],
+#     "appetite loss": ["appetite", "anorexia", "eating", "weight"],
+#     "bowel function": ["bowel", "diarrhoea", "constipation", "gastrointestinal"],
+#     "treatment tolerability": ["tolerability", "adverse", "toxicity", "ctcae", "symptom", "side effect", "crs", "cytokine release", "icans"],
+#     "disease-related symptoms": ["bone pain", "disease symptoms", "mm symptoms",
+#                                 "disease-specific", "symptom burden"],
+#     "symptomatic adverse events": ["adverse events", "symptoms", "toxicity", "tolerability",
+#                                 "side effects", "treatment side effects", "nausea",
+#                                 "neuropathy", "fatigue"],
+#     "side effect impact summary": ["side effects", "treatment impact", "toxicity burden",
+#                                 "overall symptom burden"],
+#     "role function":            ["physical function", "functioning", "daily activities",
+#                                 "role functioning", "work", "activities"],
+#     "physical functioning":     ["physical function", "functioning", "mobility", "activity"],
+#     "peripheral neuropathy":    ["neuropathy", "cipn", "tingling", "numbness",
+#                                 "sensory", "neuropathic pain"],
+# "cytokine release syndrome (crs) symptoms": ["crs", "cytokine", "ctcae", "icans", "pro-ctcae", "tolerability", "adverse"],
+#     "hrqol": ["hrqol", "quality of life", "health-related", "wellbeing", "function"],
+#     "disease-specific symptoms": ["disease", "specific", "myeloma", "cancer-specific", "my20", "symptom"],
+# }
+
 DOMAIN_SYNONYMS = {
-    "bone pain": ["pain", "bone", "analgesic", "bpi", "nrs", "aches", "skeletal"],
-    "physical function": ["physical", "function", "activity", "mobility", "performance", "adl", "karnofsky"],
-    "fatigue": ["fatigue", "tiredness", "energy", "exhaustion", "asthenia", "vitality"],
-    "dyspnea": ["dyspnea", "breathlessness", "breathing", "respiratory", "shortness of breath"],
-    "cough": ["cough", "respiratory", "pulmonary"],
-    "pain": ["pain", "analgesic", "bpi", "nrs", "aches", "discomfort", "bone"],
-    "nausea": ["nausea", "vomiting", "gi", "gastrointestinal", "emesis"],
-    "urinary function": ["urinary", "urology", "bladder", "ipss", "micturition"],
-    "emotional function": ["emotional", "anxiety", "depression", "psychological", "mental", "hads", "phq"],
-    "appetite loss": ["appetite", "anorexia", "eating", "weight"],
-    "bowel function": ["bowel", "diarrhoea", "constipation", "gastrointestinal"],
-    "treatment tolerability": ["tolerability", "adverse", "toxicity", "ctcae", "symptom", "side effect", "crs", "cytokine release", "icans"],
-"cytokine release syndrome (crs) symptoms": ["crs", "cytokine", "ctcae", "icans", "pro-ctcae", "tolerability", "adverse"],
-    "hrqol": ["hrqol", "quality of life", "health-related", "wellbeing", "function"],
-    "disease-specific symptoms": ["disease", "specific", "myeloma", "cancer-specific", "my20", "symptom"],
+    "bone pain":              ["bpi", "bpi-sf", "nrs"],
+    "physical function":      ["adl", "karnofsky", "ecog"],
+    "fatigue":                ["mfsi", "bfi", "facit-fatigue"],
+    "dyspnea":                ["breathlessness", "lcq"],
+    "emotional function":     ["hads", "phq", "gad"],
+    "treatment tolerability": ["pro-ctcae", "ctcae", "crs", "icans"],
+    "hrqol":                  ["eq-5d", "sf-36", "qlq-c30"],
+    "disease-specific symptoms": ["my20", "qlq-my20"],
 }
-
-
-# =============================================================================
-# KNOWN BROAD INSTRUMENTS (implicitly cover all core domains for their indication)
-# =============================================================================
-BROAD_INSTRUMENTS = {
-    "eortc qlq-c30": ["hrqol", "physical function", "emotional function", "fatigue", "pain", "nausea"],
-    "eortc qlq-my20": ["bone pain", "physical function", "fatigue", "disease-specific symptoms"],
-    "fact-g": ["physical function", "emotional function", "fatigue", "hrqol"],
-    "fact-p": ["pain", "physical function", "emotional function", "fatigue", "hrqol"],
-    "sf-36": ["physical function", "emotional function", "fatigue", "pain", "hrqol"],
-    "promis": ["physical function", "fatigue", "pain", "emotional function"],
-    "eq-5d": ["physical function", "pain", "hrqol", "emotional function"],
-    "eq-5d-5l": ["physical function", "pain", "hrqol", "emotional function"],
-}
-
 
 # =============================================================================
 # GLOSSARY LOADING
@@ -393,45 +398,45 @@ def _to_str(value) -> str:
 # =============================================================================
 # HAIKU SYSTEM PROMPT
 # =============================================================================
-HAIKU_SYSTEM_PROMPT = """You are extracting clinical trial parameters from natural language.
+HAIKU_SYSTEM_PROMPT = """You are extracting clinical trial parameters from natural language input.
 The input may be a detailed research brief, a short question, or anything in between.
-Read the ENTIRE input carefully before extracting. Extract what is explicitly stated.
+Read the ENTIRE input before extracting. Extract what is explicitly stated.
 
-EXTRACTION RULES:
-1. Extract from natural prose. Do not require specific keyword formats.
-   Examples of valid extractions:
-   "bortezomib-like mechanism" → drug_class = "Proteasome Inhibitor"
-   "late-line RRMM" → population_subtype = "Relapsed/Refractory", indication = "Multiple Myeloma"
-   "spanning US, EU, and Asia" → geographic_footprint = "Global"
-   "FDA and EMA submissions" → regulatory_agencies = ["FDA", "EMA"]
-   "NICE and ICER" → hta_markets = ["NICE", "ICER"]
+KEY EXTRACTION RULES:
+1. Do NOT require specific keyword formats. Natural prose is valid.
    "reversible inhibitor of the 26S proteasome" → drug_class = "Proteasome Inhibitor"
+   "late-line RRMM with several prior lines" → population_subtype = "Relapsed/Refractory", indication = "Multiple Myeloma"
+   "spanning US, EU, and Asia" → geographic_footprint = "Global"
+   "FDA and EMA submissions" → regulatory note (affects hta_markets)
+   "NICE and ICER" → hta_markets = ["NICE", "ICER"]
+   "bortezomib-like mechanism" → drug_class = "Proteasome Inhibitor"
    "proteasome inhibitor-based therapy" → drug_class = "Proteasome Inhibitor"
+   "bispecific antibody" → drug_class = "Bispecific"
+   "disease-related bone pain, fatigue, physical functioning" → add to core_domains_required AND additional_domains
 
-2. For assumptions_made: ONLY list fields where you genuinely had to infer something
-   NOT explicitly stated. Do NOT list fields you successfully extracted.
-   If indication, phase, and drug class were all in the text, assumptions_made = [].
+2. assumptions_made: ONLY list fields you had to INFER because they were NOT in the text.
+   If indication, phase, drug_class were all stated: assumptions_made = [].
+   Do NOT list successful extractions as assumptions.
 
-3. core_domains_required: use the FDA 2024 Core PRO Guidance domains for the indication,
-   PLUS any additional domains explicitly mentioned by the user.
-   Multiple Myeloma: disease-related symptoms (bone pain), physical function, fatigue,
-                    symptomatic AEs, side effect impact summary, role function
-   NSCLC: disease symptoms (dyspnoea, cough, chest pain), physical function,
-          symptomatic AEs, role function
+3. core_domains_required: FDA 2024 Core PRO Guidance for the indication PLUS any domains
+   explicitly mentioned by the user.
+   Multiple Myeloma core: disease-related symptoms (bone pain), physical function, fatigue,
+                          symptomatic AEs, side effect impact summary, role function
+   NSCLC core: dyspnoea, cough, chest pain, physical function, symptomatic AEs
    Default: physical function, fatigue, pain, symptomatic AEs
 
-4. additional_domains: capture any domains the user explicitly asked about that are
-   beyond the standard FDA core set (e.g. "peripheral neuropathy burden" is additional).
+4. additional_domains: capture domains explicitly asked about beyond the standard core.
+   Example: "peripheral neuropathy burden" → additional_domains = ["peripheral neuropathy"]
 
-5. tpp_claims: extract from "we want to demonstrate/capture/show/measure [X]" phrases.
-   If not stated, default to ["treatment tolerability", "physical function maintenance"]
-   and flag in assumptions_made.
+5. tpp_claims: extract from phrases like "we want to show/capture/demonstrate X".
+   If not stated → default to ["treatment tolerability", "physical function maintenance"]
+   and flag as inferred in assumptions_made.
 
-Inference rules (only apply if field NOT in the text):
-- phase missing → "Phase 3" (flag as inferred)
-- geographic_footprint missing → Phase 3 = "Global" (flag as inferred)
-- hta_markets missing → infer from footprint + regulatory agencies mentioned (flag as inferred)
-- administration missing for bispecific/CAR-T → "Step-up dosing" (flag as inferred)
+INFERENCE RULES (apply ONLY if field NOT in text):
+- phase missing → "Phase 3" (flag)
+- geographic_footprint missing → Phase 3 = "Global" (flag)
+- hta_markets missing → infer from footprint + regulatory agencies mentioned (flag)
+- bispecific/CAR-T with no administration stated → "Step-up dosing" (flag)
 
 Return ONLY valid JSON. No markdown. No explanation outside JSON."""
 
@@ -500,13 +505,6 @@ def analyze_trial_context(user_text: str) -> dict:
 # =============================================================================
 # STEP 2 — UTILITY: KG WRAPPERS
 # =============================================================================
-# def _get_conn():
-#     return Neo4jConnection(
-#         os.getenv("NEO4J_URI"),
-#         os.getenv("NEO4J_USERNAME"),
-#         os.getenv("NEO4J_PASSWORD")
-#     )
-
 def _get_conn():
     return Neo4jConnection(
         get_secret("NEO4J_URI"),
@@ -694,12 +692,16 @@ def build_tier1_citation_index(indication: str, phase: str = "Phase 3") -> dict:
 # STEP 3: SCORING ENGINE
 # =============================================================================
 
-def score_evidence(context_json: dict, kg_records: list) -> list:
+def score_evidence(context_json: dict, kg_records: list, instrument_metadata=None, raw_kg_records=None,) -> list:
     """
     Score each instrument on a 0-100 scientific scale plus operational bonuses.
     All penalties are replaced by a structured Risk Flag System.
     Scientific score is never deducted — flags carry severity independently.
     """
+    if instrument_metadata is None:
+        instrument_metadata = {}
+    if raw_kg_records is None:
+        raw_kg_records = kg_records
 
     indication        = _to_str(context_json.get("indication"))
     population        = str(context_json.get("population_subtype", "Symptomatic"))
@@ -714,37 +716,46 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
     drug_class        = _to_str(context_json.get("drug_class"))
 
     results = []
+    instrument_metadata = instrument_metadata or {}
 
     for record in kg_records:
-        instrument_name   = str(record.get("instrument_name", "Unknown"))
-        instrument_lower  = instrument_name.lower()
+        instrument_name  = str(record.get("instrument_name", "Unknown"))
+        instrument_lower = instrument_name.lower()
+
+        # --- Domain resolution: Instrument node is authoritative, TI fields are fallback ---
+        inst_node = instrument_metadata.get(instrument_name, {})
+        node_domains = _to_str(inst_node.get("domains_measured", ""))
+        node_developer = _to_str(inst_node.get("developer", ""))
 
         domain_search_parts = [
-            _to_str(record.get("instrument_domain")),
+            node_domains,                                          # PRIMARY: Instrument node
+            _to_str(record.get("instrument_domain")),             # FALLBACK: TrialInstrument fields
             _to_str(record.get("domains_measured")),
             _to_str(record.get("key_finding")),
             _to_str(record.get("subscale_results")),
             _to_str(record.get("instrument_subscales_assessed")),
             _to_str(record.get("strengths")),
         ]
-        instrument_domains = " ".join(
-            [" ".join(BROAD_INSTRUMENTS.get(instrument_lower, []))] +
-            domain_search_parts
-        )
+        instrument_domains = " ".join(p for p in domain_search_parts if p)
+
+        # Override developer_str with node data if richer
+        if node_developer:
+            developer_str = node_developer
+
         instrument_domains_list = [
             d.strip().lower()
-            for part in domain_search_parts
-            for d in re.split(r"[,;]", part)
+            for d in re.split(r"[,;\s]+", instrument_domains)
             if d.strip()
         ]
 
-        mode_options         = _to_str(record.get("mode_options"))
-        source_documents     = _to_str(record.get("source_documents"))
-        developer_str        = _to_str(record.get("developer"))
-        endpoint_role        = _to_str(record.get("endpoint_role"))
-        prespecified         = _to_str(record.get("prespecified"))
-        regulatory_acceptance = _to_str(record.get("regulatory_acceptance"))
-        validation_status    = _to_str(record.get("validation_status", ""))
+        # --- Other record fields ---
+        mode_options          = _to_str(record.get("mode_options"))
+        source_documents      = _to_str(record.get("source_documents"))
+        developer_str         = _to_str(inst_node.get("developer") or record.get("developer"))
+        endpoint_role         = _to_str(record.get("endpoint_role"))
+        prespecified          = _to_str(record.get("prespecified"))
+        regulatory_acceptance = _to_str(inst_node.get("regulatory_acceptance") or record.get("regulatory_acceptance"))
+        validation_status     = _to_str(inst_node.get("validation") or record.get("validation_status", ""))
 
         total_items_raw = str(record.get("total_items", ""))
         num_match = re.search(r"\d+", total_items_raw)
@@ -957,52 +968,100 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
             )))
 
         raw_score = min(raw_score, 100)
-
-        # ═══════════════════════════════════════════════════════════════════
-        # COMPONENT 3 — VALIDATED MCID  (0–20)
+# ═══════════════════════════════════════════════════════════════════
+        # COMPONENT 3 — VALIDATED MCID  (0–20, gated)
         #
-        # +20  Anchor-based MCID
-        # +12  Distribution-based MCID only
-        #   0  No MCID
+        # Scored in two dimensions:
+        #  (a) Method quality: anchor-based (+20) > distribution-based (+12)
+        #      Anchor-based is preferred by FDA because it reflects patient
+        #      perspective of change, not statistical distribution.
+        #  (b) Population alignment: same indication > adjacent haematological
+        #      > general oncology > unknown/non-oncology
+        #      An MCID in breast cancer is not equivalent to one in RRMM.
+        #
+        # Gate: if NO validated MCID exists, score is hard-capped at 75.
+        # Rationale: without MCID, responder analysis is impossible, which
+        # limits label claim language to mean change statistics only.
         #
         # Source: FDA PRO Guidance (2009) Section V.C
         # ═══════════════════════════════════════════════════════════════════
         if mcid_valid:
             mcid_full_text = _to_str(raw_mcid).lower()
+
+            # Dimension (a): method quality
             anchor_terms = [
                 "anchor", "patient global", "pgic", "external criterion",
-                "anchor-based", "anchor based", "clinician global"
+                "anchor-based", "anchor based", "clinician global",
+                "meaningful to patients", "patient-meaningful"
             ]
             dist_terms = [
                 "distribution", "sem", "standard error", "effect size",
-                "half sd", "0.5 sd", "distribution-based", "distribution based"
+                "half sd", "0.5 sd", "distribution-based", "distribution based",
+                "responsiveness statistic"
             ]
             is_anchor_based = any(t in mcid_full_text for t in anchor_terms)
             is_dist_only    = (any(t in mcid_full_text for t in dist_terms)
                                 and not is_anchor_based)
+            mcid_method_pts = 12 if is_dist_only else 20
+            mcid_method_str = "distribution-based" if is_dist_only else (
+                "anchor-based" if is_anchor_based else "established"
+            )
 
-            if is_dist_only:
-                raw_score += 12
-                flags.append(linkify_flag_citations(ensure_full_stop(
-                    f"Validated MCID +12 (distribution-based): MCID established "
-                    f"({mcid_display}) using distribution-based methods only. "
-                    "Anchor-based MCID is preferred by FDA for label claim "
-                    "responder analyses [FDA PRO Guidance (2009) Section V.C]."
-                )))
+            # Dimension (b): population alignment — what population was MCID established in?
+            # Check MCID text AND the instrument's disease_area field
+            mcid_pop_text = mcid_full_text + " " + _to_str(record.get("disease_area",""))
+            ind_lower     = indication.lower()
+            ind_synonyms  = [s.lower() for s in context_json.get("indication_synonyms",[])]
+            all_ind_terms = [ind_lower] + ind_synonyms
+
+            if any(t in mcid_pop_text for t in all_ind_terms + ["myeloma","mm","rrmm"]):
+                pop_tier = "same indication"
+                pop_mult = 1.0   # full points
+                pop_note = f"MCID established in {indication} or directly comparable population — highest confidence."
+            elif any(t in mcid_pop_text for t in ["haematol","hematol","lymphoma","leukemia","blood cancer"]):
+                pop_tier = "adjacent haematological malignancy"
+                pop_mult = 0.75  # 75% of method points
+                pop_note = f"MCID established in adjacent haematological malignancy — applicable but not indication-specific. Consider whether a {indication}-specific MCID study is feasible."
+            elif any(t in mcid_pop_text for t in ["cancer","oncol","tumour","tumor","carcinoma"]):
+                pop_tier = "general oncology"
+                pop_mult = 0.5   # 50% of method points
+                pop_note = f"MCID established in general oncology population — may not reflect {indication} patients' experience of meaningful change. Human review recommended."
             else:
-                raw_score += 20
-                method = "anchor-based" if is_anchor_based else "established"
+                pop_tier = "unknown or non-oncology population"
+                pop_mult = 0.35  # 35% of method points
+                pop_note = f"MCID population unclear or from non-oncology setting — applicability to {indication} uncertain. Commission {indication}-specific MCID study."
+
+            mcid_pts = max(1, round(mcid_method_pts * pop_mult))
+            raw_score += mcid_pts
+
+            flags.append(linkify_flag_citations(ensure_full_stop(
+                f"Validated MCID +{mcid_pts} ({mcid_method_str}, {pop_tier}): "
+                f"{mcid_display}. {pop_note} "
+                f"[FDA PRO Guidance (2009) Section V.C]."
+            )))
+
+            # Distribution-based method warning
+            if is_dist_only:
                 flags.append(linkify_flag_citations(ensure_full_stop(
-                    f"Validated MCID +20 ({method}): MCID established — "
-                    f"{mcid_display}. Enables responder analysis required for "
-                    "label claims [FDA PRO Guidance (2009) Section V.C]."
+                    "⚠️ MCID METHOD NOTE: Distribution-based MCID only. "
+                    "FDA PRO Guidance (2009) Section V.C explicitly prefers "
+                    "anchor-based methods for responder analysis supporting "
+                    "label claims. Distribution-based MCIDs may not be accepted "
+                    "by FDA as the primary responder threshold."
                 )))
+
         else:
             flags.append(linkify_flag_citations(ensure_full_stop(
-                "Validated MCID 0: MCID not established — responder analysis "
-                "impossible, limiting label claim language to mean change statistics "
+                "Validated MCID 0: No validated MCID found in KG for this instrument. "
+                "Score capped at 75 — without MCID, responder analysis is impossible "
+                "and label claim language is limited to mean change statistics. "
+                "Verify via PROQOLID (proqolid.org) or instrument developer "
                 "[FDA PRO Guidance (2009) Section V.C]."
             )))
+
+        # Apply MCID gate: cap at 75 if no valid MCID
+        if not mcid_valid:
+            raw_score = min(raw_score, 75)
 
         raw_score = min(raw_score, 100)
 
@@ -1070,6 +1129,85 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
                 )))
 
         raw_score = min(raw_score, 100)
+
+        # ═══════════════════════════════════════════════════════════════════
+        # COMPONENT 4b — CHANGE DETECTION IN PRECEDENT TRIALS  (informational)
+        #
+        # This is NOT a scored component — it is a separate signal that COA
+        # strategists use when reviewing comparator analysis. A high scientific
+        # score on criteria 1-4 does not guarantee the instrument will detect
+        # change in this trial context. KG evidence of actual change detected
+        # in similar trials is the most direct evidence available.
+        #
+        # Adds +5 bonus if significant change was detected in ≥1 KG trial
+        # for this instrument in the same or comparable indication.
+        # This is a small bonus because detection in a different trial context
+        # does not guarantee detection in the current one.
+        #
+        # Source: COA strategist practice — comparator analysis
+        # ═══════════════════════════════════════════════════════════════════
+        # Find all KG records for this specific instrument
+        # (record is the current record; we need to check the full kg_records list
+        #  but score_evidence only receives records not the full list)
+        # Instead, use the current record's own significance/direction fields
+
+        all_records_for_instrument = [
+            r for r in raw_kg_records
+            if r.get("instrument_name") == instrument_name
+        ]
+
+        # Find the best positive-change record (significant improvement in any trial)
+        best_positive = next(
+            (
+                r for r in all_records_for_instrument
+                if any(t in _to_str(r.get("significance", ""))
+                    for t in ["significant", "p <", "p<", "p=0.0", "favours", "favor"])
+                and any(t in _to_str(r.get("direction", ""))
+                        for t in ["favour", "favor", "improvement", "better", "positive"])
+            ),
+            None
+        )
+
+        # Find the best null-change record (only relevant if no positive record exists)
+        best_null = next(
+            (
+                r for r in all_records_for_instrument
+                if any(t in _to_str(r.get("significance", ""))
+                    for t in ["not significant", "no significant", "ns ", "p > 0", "p>0"])
+            ),
+            None
+        ) if not best_positive else None
+
+        change_detected = best_positive is not None
+        change_null = best_null is not None
+
+        significance_excerpt = ""
+        precedent_trial_name = "a KG trial"
+
+        if best_positive:
+            significance_excerpt = str(best_positive.get("significance", "")).strip()[:80]
+            precedent_trial_name = best_positive.get("trial_name", "") or "a KG trial"
+        elif best_null:
+            precedent_trial_name = best_null.get("trial_name", "") or "a KG trial"
+
+        if change_detected:
+            raw_score += 5
+            detail = f" ({significance_excerpt})" if significance_excerpt else ""
+            flags.append(linkify_flag_citations(ensure_full_stop(
+                f"Change Detected +5: KG record for {instrument_name} in "
+                f"{precedent_trial_name} shows statistically significant improvement"
+                f"{detail}. "
+                "This is a comparator signal, not a guarantee for the current trial — "
+                "trial design and population differences apply."
+            )))
+        elif change_null:
+            flags.append(linkify_flag_citations(ensure_full_stop(
+                f"Change Not Detected (informational): {instrument_name} showed no "
+                f"statistically significant change in {precedent_trial_name}. "
+                "Review whether trial design, sample size, or patient population "
+                "explains the null result before relying on this instrument for primary endpoints."
+            )))
+
 
         # ═══════════════════════════════════════════════════════════════════
         # RISK FLAG SYSTEM
@@ -1143,7 +1281,7 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
                 flags.append(linkify_flag_citations(ensure_full_stop(
                     f"RECALL PERIOD UNKNOWN: {instrument_name} recall period "
                     "not in reference database. "
-                    f"For {administration}, FDA PFDD Guidance 3 (2022) requires "
+                    f"For {administration}, FDA PFDD Guidance 3 (2025) requires "
                     "recall to match symptom fluctuation — CRS/ICANS events "
                     "occur within 24–72 hours of dosing. "
                     "Sonnet has been instructed to verify the official recall "
@@ -1162,7 +1300,7 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
                     "CRS/ICANS events occur within 24–72 hours of dosing — "
                     f"a {recall_period}-day window structurally misses peak "
                     "symptom severity. "
-                    "Per FDA PFDD Guidance 3 (2022), recall must match "
+                    "Per FDA PFDD Guidance 3 (2025), recall must match "
                     "symptom fluctuation pattern."
                 )))
             else:
@@ -1170,7 +1308,7 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
                 flags.append(linkify_flag_citations(ensure_full_stop(
                     f"Recall period compatible: {instrument_name} has "
                     f"{recall_period}-day recall ({source}), compatible with "
-                    f"{administration} [FDA PFDD Guidance 3 (2022)]."
+                    f"{administration} [FDA PFDD Guidance 3 (2025)]."
                 )))
 
         # ── 🟠 HIGH: NOT PRE-SPECIFIED IN SAP ─────────────────────────────
@@ -1283,9 +1421,9 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
         # ── eCOA Ready (0–40) ─────────────────────────────────────────────
         if any(t in mode_options
                for t in ["ecoa", "electronic", "app", "tablet", "digital"]):
-            operational_bonus += 40
+            operational_bonus += 8
             flags.append(linkify_flag_citations(ensure_full_stop(
-                "eCOA Ready +40 (operational): Electronic/app-based "
+                "eCOA Ready +8: Electronic/app-based "
                 "administration mode available — reduces transcription error "
                 "and enables real-time monitoring "
                 "[FDA eCOA Guidance (2023)]."
@@ -1298,9 +1436,9 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
         ]
         if any(d in developer_str or d in source_documents or d in instrument_lower
                for d in OPEN_ACCESS_DEVS):
-            operational_bonus += 25
+            operational_bonus += 5
             flags.append(linkify_flag_citations(ensure_full_stop(
-                "Open Access +25 (operational): Instrument developed by an "
+                "Open Access +5 (operational): Instrument developed by an "
                 "open-access organisation (EORTC, NCI, FACIT, WHO, RAND, "
                 "PCORI, or NIH) — no commercial licensing fees, publicly "
                 "maintained, and freely available for trial use."
@@ -1412,6 +1550,60 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
                 )))
 
         # ═══════════════════════════════════════════════════════════════════
+        # OVERLAP DETECTION  (data-driven from KG Domains_Measured field)
+        #
+        # Rather than hardcoding known pairs, compute overlap dynamically
+        # from the instrument's own domain data vs other scored instruments.
+        # Sonnet receives the overlap signal and contextualises it.
+        # Threshold: ≥2 shared domains = worth flagging.
+        # ═══════════════════════════════════════════════════════════════════
+        this_domains = set(
+            d.strip().lower()
+            for part in [
+                _to_str(record.get("domains_measured","")),
+                _to_str(record.get("instrument_domain","")),
+            ]
+            for d in re.split(r"[,;/]", part)
+            if d.strip() and len(d.strip()) > 3
+        )
+        if this_domains:
+            overlap_notes = []
+            for other in kg_records:
+                other_name = str(other.get("instrument_name",""))
+                if other_name == instrument_name or not other_name:
+                    continue
+                other_domains = set(
+                    d.strip().lower()
+                    for part in [
+                        _to_str(other.get("domains_measured","")),
+                        _to_str(other.get("instrument_domain","")),
+                    ]
+                    for d in re.split(r"[,;/]", part)
+                    if d.strip() and len(d.strip()) > 3
+                )
+                shared = this_domains & other_domains
+                if len(shared) >= 2:
+                    overlap_notes.append(
+                        f"{other_name} (shared: {', '.join(list(shared)[:3])})"
+                    )
+            if overlap_notes:
+                # Deduplicate — only flag once per unique other instrument
+                seen = set()
+                unique_notes = []
+                for n in overlap_notes:
+                    key = n.split(" (shared")[0]
+                    if key not in seen:
+                        seen.add(key)
+                        unique_notes.append(n)
+                flags.append(ensure_full_stop(
+                    f"⚠️ OVERLAP NOTE: {instrument_name} shares ≥2 domains with: "
+                    f"{'; '.join(unique_notes[:3])}. "
+                    "Including both instruments creates respondent burden without "
+                    "additional regulatory value. Consider item library approach "
+                    "or selecting one. Decision for the COA expert."
+                ))
+
+        # ═══════════════════════════════════════════════════════════════════
         # FINAL SCORES
         # scientific_score  — sum of the four components (0–100, no deductions)
         # final_adjusted_score — scientific + operational bonus
@@ -1458,85 +1650,111 @@ def score_evidence(context_json: dict, kg_records: list) -> list:
 # =============================================================================
 # STEP 4: BATTERY OPTIMIZER
 # =============================================================================
-def build_coverage_matrix(scored: list, context_json: dict, kg_records: list) -> dict:
+def build_coverage_matrix(scored: list, context_json: dict, raw_kg_records: list, instrument_metadata = None,) -> dict:
     """
     Build a domain coverage matrix showing which instruments cover which FDA core domains.
     This replaces the battery optimizer — we show options, experts decide.
 
     Returns:
-      domains: list of {domain, candidates, hta_required, item_library_note}
+      domains: list of {domain, candidates, item_library_note, is_fda_core}
       comparator_trials: list of {trial_name, drug, drug_class, instruments, nct_id}
       hta_mandatory: list of instruments always required regardless of score
-      item_library_applicable: bool — True if instrument has >30 items
+      item_library_applicable: bool — True if any trial used subscales/item library
       all_candidates: top 8 scored instruments with full data
     """
-    indication   = _to_str(context_json.get("indication"))
-    hta_markets  = context_json.get("hta_markets", [])
-    drug_class   = _to_str(context_json.get("drug_class"))
-    core_domains = [str(d).lower() for d in context_json.get("core_domains_required", [])]
-    extra_domains = [str(d).lower() for d in context_json.get("additional_domains", [])]
-    all_domains  = list(dict.fromkeys(core_domains + extra_domains))
+    if instrument_metadata is None:
+        instrument_metadata = {}
 
-    # Map each domain to the instruments that cover it (from scored list)
+    # Use the same keys as everywhere else in context_json / analyzer
+    indication = _to_str(context_json.get("indication"))
+    hta_markets = context_json.get("htamarkets", [])  # NOT "hta_markets"
+    drug_class = _to_str(context_json.get("drugclass"))
+    core_domains = [str(d).lower() for d in context_json.get("coredomainsrequired", [])]
+    extra_domains = [str(d).lower() for d in context_json.get("additionaldomains", [])]
+    all_domains = list(dict.fromkeys(core_domains + extra_domains))
+
     domain_coverage = []
     for domain in all_domains:
-        synonyms  = DOMAIN_SYNONYMS.get(domain, [domain])
+        synonyms = DOMAIN_SYNONYMS.get(domain, [domain])
         all_terms = [domain] + synonyms
         candidates = []
+
         for inst in scored:
-            inst_lower = inst["instrument_name"].lower()
-            broad_text = " ".join(BROAD_INSTRUMENTS.get(inst_lower, []))
+            inst_name = inst["instrument_name"]
+            inst_lower = inst_name.lower()
+            inst_node = instrument_metadata.get(inst_name, {})
+            node_domains = _to_str(inst_node.get("domains_measured", ""))
+
+            # Keep search text tied to real metadata + scored explanations
             flags_text = " ".join(inst.get("flags", [])).lower()
-            search_text = " ".join([inst_lower, broad_text, flags_text])
+            search_text = " ".join([inst_lower, node_domains, flags_text])
+
             if any(t in search_text for t in all_terms):
-                # Check if any KG record shows change was detected
-                kg_matches = [r for r in kg_records
-                              if r.get("instrument_name") == inst["instrument_name"]]
+                kg_matches = [
+                    r for r in raw_kg_records
+                    if r.get("instrument_name") == inst_name
+                ]
+
                 change_detected = "Yes" if any(
-                    "significant" in _to_str(r.get("significance"))
-                    and "favour" in _to_str(r.get("direction"))
+                    any(t in _to_str(r.get("significance", "")) for t in ["significant", "p <", "p<", "favours", "favor"])
+                    and any(t in _to_str(r.get("direction", "")) for t in ["favour", "favor", "improvement", "better", "positive"])
                     for r in kg_matches
                 ) else ("No" if kg_matches else "NR")
 
-                candidates.append({
-                    "instrument":      inst["instrument_name"],
-                    "score":           inst["scientific_score"],
-                    "risk":            inst["risk_level"],
-                    "change_detected": change_detected,
-                    "precedent_trial": kg_matches[0].get("trial_name", "") if kg_matches else "",
-                    "precedent_nct":   kg_matches[0].get("nct_id", "") if kg_matches else "",
-                })
-        candidates.sort(key=lambda x: -x["score"])
-
-        # Item library note: if best candidate has >30 items, suggest subscale approach
-        item_library_note = ""
-        for inst in scored:
-            if candidates and inst["instrument_name"] == candidates[0]["instrument"]:
-                items_raw = inst.get("raw_positive_score", 0)  # use as proxy
-                # Check KG records for subscale usage
-                subscale_used = any(
-                    r.get("subscale_results") or r.get("instrument_subscales_assessed")
-                    for r in kg_records
-                    if r.get("instrument_name") == inst["instrument_name"]
+                precedent = next(
+                    (r for r in kg_matches if r.get("trial_name") or r.get("nctid")),
+                    {}
                 )
-                if subscale_used:
-                    item_library_note = (
-                        f"Note: Comparator trials have used subscale/item-library "
-                        f"approaches with {inst['instrument_name']} rather than full "
-                        f"administration. Consider calibrated PRO SOA approach to reduce "
-                        f"patient burden — discuss with COA expert."
-                    )
+
+                candidates.append({
+                    "instrument": inst_name,
+                    "score": inst["scientific_score"],
+                    "risk": inst["risk_level"],
+                    "change_detected": change_detected,
+                    "precedent_trial": precedent.get("trial_name", ""),
+                    "precedent_nct": precedent.get("nctid", ""),
+                    "prevalence": inst.get("_prevalence", 1),
+                })
+
+        candidates.sort(key=lambda x: (-x["score"], -x["prevalence"], x["instrument"]))
+
+        item_library_note = ""
+        if candidates:
+            best_name = candidates[0]["instrument"]
+            best_rec = next((s for s in scored if s["instrument_name"] == best_name), None)
+            items_raw = best_rec.get("total_items", 0) if best_rec else 0
+            try:
+                n_items = int(items_raw) if items_raw else 0
+            except Exception:
+                n_items = 0
+
+            subscale_used = any(
+                r.get("subscale_results") or r.get("instrument_subscales_assessed")
+                for r in raw_kg_records
+                if r.get("instrument_name") == best_name
+            )
+            if n_items >= 30 and subscale_used:
+                item_library_note = (
+                    f"Note: Comparator trials have used subscale/item-library approaches with "
+                    f"{best_name} rather than full administration."
+                )
 
         domain_coverage.append({
-            "domain":           domain,
-            "candidates":       candidates,
+            "domain": domain,
+            "candidates": candidates,
             "item_library_note": item_library_note,
-            "is_fda_core":      domain in core_domains,
+            "is_fda_core": domain in core_domains,
         })
 
-    # HTA mandatory instruments (always required, separate from scoring)
-    hta_mandatory = []
-    hta_wildcards = {"NICE": "eq-5d", "ICER": "eq-5d", "EUnetHTA": "eq-5d", "SMC": "eq-5d"}
+    # HTA mandatory instruments (EQ-5D wildcards)
+    htamandatory = []
+    hta_wildcards = {
+        "NICE": "eq-5d",
+        "ICER": "eq-5d",
+        "EUnetHTA": "eq-5d",
+        "SMC": "eq-5d",
+    }
+
     for market in hta_markets:
         wildcard = hta_wildcards.get(market)
         if wildcard:
@@ -1547,58 +1765,372 @@ def build_coverage_matrix(scored: list, context_json: dict, kg_records: list) ->
                 for d in domain_coverage for c in d["candidates"]
             )
             if not already_listed:
-                hta_mandatory.append({
+                htamandatory.append({
                     "instrument": "EQ-5D-5L",
-                    "market":     market,
-                    "score":      score_val,
-                    "reason":     f"Required for {market} cost-utility (QALY) analysis. "
-                                  f"Without EQ-5D, QALY calculation is impossible.",
+                    "market": market,
+                    "score": score_val,
+                    "reason": "Required for cost-utility / QALY analysis."
                 })
 
-    # Comparator trials: KG trials in same drug class or indication
+    # Comparator trials: use raw_kg_records (one row per trial×instrument)
     comparator_map = {}
-    for r in kg_records:
-        trial_name = r.get("trial_name") or r.get("nct_id", "")
+    for r in raw_kg_records:
+        trial_name = r.get("trial_name") or r.get("nctid")
         if not trial_name:
             continue
         if trial_name not in comparator_map:
             comparator_map[trial_name] = {
-                "trial_name":  trial_name,
-                "drug":        r.get("drug_name", ""),
-                "drug_class":  r.get("drug_class_name", "") or r.get("disease_classification", ""),
-                "nct_id":      r.get("nct_id", ""),
-                "phase":       r.get("phase", ""),
+                "trial_name": trial_name,
+                "drug": r.get("drug_name", ""),
+                "drug_class": r.get("drugclassname") or r.get("diseaseclassification", ""),
+                "nct_id": r.get("nctid", ""),
+                "phase": r.get("phase", ""),
                 "instruments": [],
             }
         comparator_map[trial_name]["instruments"].append({
-            "name":          r.get("instrument_name", ""),
-            "role":          r.get("endpoint_role", "") or r.get("pro_position", ""),
-            "significance":  r.get("significance", ""),
-            "direction":     r.get("direction", ""),
-            "prespecified":  r.get("prespecified", ""),
-            "subscales":     r.get("instrument_subscales_assessed", ""),
+            "name": r.get("instrument_name", ""),
+            "role": r.get("endpoint_role") or r.get("proposition", ""),
+            "significance": r.get("significance", ""),
+            "direction": r.get("direction", ""),
+            "prespecified": r.get("prespecified", ""),
+            "subscales": r.get("instrument_subscales_assessed", ""),
         })
 
-    # Sort comparators: same drug class first
     comparators = list(comparator_map.values())
-    comparators.sort(key=lambda x: (
-        0 if any(term in _to_str(x["drug_class"]) for term in drug_class.split())
-        else 1
-    ))
+    comparators.sort(
+        key=lambda x: (
+            0 if any(term in _to_str(x["drug_class"]) for term in drug_class.split()) else 1,
+            x["trial_name"]
+        )
+    )
 
-    # Check if item library approach is applicable
     item_library_applicable = any(
         r.get("instrument_subscales_assessed") or r.get("subscale_results")
-        for r in kg_records
+        for r in raw_kg_records
     )
 
     return {
-        "domains":                domain_coverage,
-        "comparator_trials":      comparators[:5],
-        "hta_mandatory":          hta_mandatory,
+        "domains": domain_coverage,
+        "comparator_trials": comparators[:5],
+        "hta_mandatory": htamandatory,
         "item_library_applicable": item_library_applicable,
-        "all_candidates":         scored[:8],
+        "all_candidates": scored[:8],
     }
+
+def build_pro_measures_table(
+    coverage: dict,
+    inst_refs: list,
+    rawkgrecords: list,
+    contextjson: dict,
+) -> list:
+    """
+    Build a PRO measures comparison table (Table 2) purely in Python.
+
+    Returns a list of row dicts with keys:
+      - trial: trial name
+      - year: publication year (or "TBD"/"Not reported")
+      - drug: drug name
+      - drug_class: mechanism / class
+      - pro_measures: "Instrument1 (n=30), Instrument2 (n=20)..."
+      - calibrated_soa: "Yes" / "No" / "TBD"
+      - total_items: int or None
+      - est_time_min: float or None
+    """
+
+    def _norm(name: str) -> str:
+        return (name or "").strip().lower()
+
+    # Index instrument reference nodes by (shortname / instrumentname)
+    ref_index = {}
+    for ir in inst_refs or []:
+        candidates = [
+            ir.get("shortname"),
+            ir.get("instrumentname"),
+            ir.get("instrument_name"),
+        ]
+        for c in candidates:
+            if c:
+                ref_index[_norm(c)] = ir
+
+    # Index raw KG rows by trial name / NCT for year lookup
+    trial_years = {}
+    for r in rawkgrecords or []:
+        tname = r.get("trialname") or r.get("trial_name") or r.get("nctid") or r.get("nct_id")
+        if not tname:
+            continue
+        year = r.get("publicationyear") or r.get("publication_year")
+        if year and tname not in trial_years:
+            trial_years[tname] = year
+
+    rows = []
+
+    # Comparator trials from coverage
+    for trial in coverage.get("comparator_trials", []):
+        tname = trial.get("trialname") or trial.get("trial_name") or trial.get("nctid") or trial.get("nct_id") or "Unknown trial"
+        drug = trial.get("drug", "")
+        dclass = trial.get("drugclass") or trial.get("drug_class") or ""
+        year = trial_years.get(tname, "Not reported")
+
+        pro_parts = []
+        total_items = 0
+        total_time = 0.0
+        has_items = False
+        has_time = False
+
+        # Calibrated SOA = Yes if any instrument used subscales/item-library
+        calibrated_soa = "No"
+        for inst in trial.get("instruments", []):
+            iname = inst.get("name") or ""
+            norm = _norm(iname)
+            ir = ref_index.get(norm)
+
+            items = None
+            admintime = None
+            if ir:
+                raw_items = ir.get("totalitems") or ir.get("total_items")
+                raw_time = ir.get("admintime") or ir.get("admin_time")
+                try:
+                    items = int(raw_items) if raw_items not in (None, "", "nan") else None
+                except Exception:
+                    items = None
+                try:
+                    admintime = float(raw_time) if raw_time not in (None, "", "nan") else None
+                except Exception:
+                    admintime = None
+
+            # Build display part like "QLQ-C30 (n=30)" or "QLQ-C30 (n=?)"
+            if items is not None and items > 0:
+                pro_parts.append(f"{iname} (n={items})")
+                total_items += items
+                has_items = True
+            else:
+                pro_parts.append(f"{iname} (n=?)")
+
+            if admintime is not None and admintime > 0:
+                total_time += admintime
+                has_time = True
+
+            # Subscales → calibrated SOA
+            if inst.get("subscales") or inst.get("instrument_subscales_assessed"):
+                calibrated_soa = "Yes"
+
+        row = {
+            "trial": tname,
+            "year": year,
+            "drug": drug,
+            "drug_class": dclass,
+            "pro_measures": ", ".join(pro_parts) if pro_parts else "Not recorded",
+            "calibrated_soa": calibrated_soa,
+            "total_items": total_items if has_items else None,
+            "est_time_min": round(total_time, 1) if has_time else None,
+        }
+        rows.append(row)
+
+    # Current trial row (Proposed)
+    tname = "Current Trial (Proposed)"
+    year = "TBD"  # To ensure AI doesn't randomly assign a year
+    drug = f"Novel {contextjson.get('drugclass') or contextjson.get('drug_class') or 'regimen'}"
+    dclass = contextjson.get("drugclass") or contextjson.get("drug_class") or ""
+
+    rows.append({
+        "trial": tname,
+        "year": year,
+        "drug": drug,
+        "drug_class": dclass,
+        "pro_measures": "TBD — expert decision required",
+        "calibrated_soa": "TBD",
+        "total_items": None,
+        "est_time_min": None,
+    })
+
+    return rows
+
+def build_gap_analysis(
+    scored: list,
+    instrument_meta: dict,
+    reg_records: list,
+    context_json: dict,
+    top_n: int = 5,
+) -> list:
+    """
+    Build a gap analysis table for the top-N instruments.
+
+    Returns a list of dicts with keys:
+      - instrument
+      - content_validity
+      - mcid_evidence
+      - regulatory_acceptance
+      - known_gaps
+      - fit_for_purpose
+      - score
+      - risk_level
+    """
+
+    def _norm(s: str) -> str:
+        return (s or "").strip().lower()
+
+    def _reg_hits(name: str) -> list:
+        hits = []
+        n = _norm(name)
+        for r in reg_records or []:
+            acc = r.get("instrumentsaccepted") or r.get("instruments_accepted")
+            if acc and n in str(acc).lower():
+                hits.append(f"{r.get('agency','')} {r.get('decision','')}")
+        return hits
+
+    rows = []
+    for inst in (scored or [])[:top_n]:
+        # Your score_evidence uses 'instrumentname' as key
+        name = inst.get("instrumentname") or inst.get("instrument_name") or "Unknown"
+        node = instrument_meta.get(name, {})
+
+        # Content validity / validation
+        val_status = (
+            node.get("validation")
+            or inst.get("validationstatus")
+            or ""
+        )
+        val_status = str(val_status).strip()
+
+        # MCID
+        raw_mcid = node.get("mcid") or inst.get("mcid") or ""
+        mcid_short = ""
+        try:
+            mcid_short, _ = clean_mcid(raw_mcid)
+        except Exception:
+            mcid_short = str(raw_mcid)[:80] if raw_mcid else ""
+        mcid_display = mcid_short or "Not established / not reported"
+
+        # Regulatory acceptance
+        reg_node = node.get("regulatoryacceptance") or node.get("regulatory_acceptance") or ""
+        reg_hits = _reg_hits(name)
+        if reg_hits and reg_node:
+            reg_text = f"{reg_node} | KG reviews: " + "; ".join(reg_hits)
+        elif reg_hits:
+            reg_text = "KG reviews: " + "; ".join(reg_hits)
+        elif reg_node:
+            reg_text = str(reg_node)
+        else:
+            reg_text = "No explicit regulatory precedent recorded in KG"
+
+        strengths = (node.get("strengths") or inst.get("strengths") or "").strip()
+        limitations = (node.get("limitations") or inst.get("limitations") or "").strip()
+        known_gaps = limitations or "No specific limitations recorded in KG"
+
+        score = inst.get("scientificscore", 0)
+        risk = inst.get("risklevel", "LOW")
+
+        # Simple, transparent fit-for-purpose tiering
+        if score >= 65 and risk not in ("CRITICAL", "HIGH"):
+            fit = "Likely fit-for-purpose in this context"
+        elif score >= 40 and risk != "CRITICAL":
+            fit = "Conditionally fit — gaps and/or risks need mitigation"
+        else:
+            fit = "Evidence gaps / risk flags — human review strongly recommended"
+
+        rows.append({
+            "instrument": name,
+            "content_validity": val_status or "Not described",
+            "mcid_evidence": mcid_display,
+            "regulatory_acceptance": reg_text,
+            "known_gaps": known_gaps[:250],
+            "fit_for_purpose": fit,
+            "score": score,
+            "risk_level": risk,
+        })
+
+    return rows
+
+def build_endpoint_positioning(
+    raw_kg_records: list,
+    scored: list,
+    top_n: int = 5,
+) -> list:
+    """
+    Summarise endpoint positioning for top-N instruments across the KG trial sample.
+
+    Returns list of dicts:
+      - instrument
+      - primary_count
+      - secondary_count
+      - exploratory_count
+      - other_count
+      - comment
+    """
+
+    def _norm(s: str) -> str:
+        return (s or "").strip().lower()
+
+    # Focus on the same instruments you highlight elsewhere (top-N by score)
+    instrument_order = []
+    for inst in (scored or [])[:top_n]:
+        name = inst.get("instrumentname") or inst.get("instrument_name")
+        if name and name not in instrument_order:
+            instrument_order.append(name)
+
+    counts = {
+        name: {
+            "Primary": 0,
+            "Secondary": 0,
+            "Exploratory": 0,
+            "Other": 0,
+        }
+        for name in instrument_order
+    }
+
+    for r in raw_kg_records or []:
+        name = r.get("instrumentname") or r.get("instrument_name")
+        if name not in counts:
+            continue
+        role_raw = (
+            r.get("pro_position")
+            or r.get("endpointrole")
+            or r.get("endpoint_role")
+            or r.get("proposition")
+            or ""
+        )
+        role = _norm(role_raw)
+        if not role:
+            continue
+
+        if "primary" in role:
+            key = "Primary"
+        elif "secondary" in role:
+            key = "Secondary"
+        elif "explor" in role:
+            key = "Exploratory"
+        else:
+            key = "Other"
+
+        counts[name][key] += 1
+
+    rows = []
+    for name in instrument_order:
+        c = counts[name]
+        total = sum(c.values())
+        if total == 0:
+            comment = "No KG trials with explicit endpoint role for this instrument in this indication."
+        else:
+            dominant = max(c.items(), key=lambda kv: kv[1])[0]
+            if c[dominant] == total:
+                comment = f"Used exclusively as {dominant.lower()} endpoint in our KG trial sample."
+            else:
+                comment = (
+                    f"Mixed endpoint roles in KG sample; most frequent: {dominant.lower()} "
+                    f"({c[dominant]} of {total} trial-instrument records with explicit role)."
+                )
+
+        rows.append({
+            "instrument": name,
+            "primary_count": c["Primary"],
+            "secondary_count": c["Secondary"],
+            "exploratory_count": c["Exploratory"],
+            "other_count": c["Other"],
+            "comment": comment,
+        })
+
+    return rows
+
 
 # =============================================================================
 # STEP 5: KG NARRATIVE CLEANER
@@ -1755,16 +2287,25 @@ def build_competitor_profiles(indication: str, drug_class: str,
 # =============================================================================
 def get_recommendation(user_text: str) -> dict:
     """
-    Main pipeline: Analyzer → KG queries → Scoring → Battery → Cleaning → Sonnet + web search.
-    Returns structured result dict for the Streamlit UI.
+    Step A: Haiku — extract trial context
+    Step B: Neo4j — query instruments, regulatory reviews, rules
+    Step C: Python — score instruments (0-100)
+    Step D: Python — build coverage matrix
+    Step E: Neo4j — instrument references + per-instrument regulatory precedent
+    Step E.1: Haiku — competitor profile enrichment
+    Step F: Haiku — clean KG narrative fields
+    Step G: Python — build evidence block for Sonnet
+    Step H: Python — build HTA context block
+    Step I: Python — build Sonnet system prompt
+    Step J: Python — build Sonnet user prompt
+    Step K: Sonnet — synthesise recommendation with web search
+    Step L: Return structured result dict
     """
+
     error_status = None
-    kg_records = []
-    reg_records = []
     inst_refs = []
-    reg_rules = []
     inst_regulatory_precedents = {}
-    battery_result = {"battery": [], "battery_names": [], "covered_domains": [], "gaps": [], "hta_additions": []}
+    competitor_profiles = []
 
     # --- STEP A: Analyze trial context ---
     context_json = analyze_trial_context(user_text)
@@ -1773,68 +2314,183 @@ def get_recommendation(user_text: str) -> dict:
     phase = context_json.get("phase", "Phase 3")
 
     # --- STEP B: Query Knowledge Graph ---
-    try:
-        # Instruments: search primary indication + synonyms
-        search_terms = list(dict.fromkeys([indication] + synonyms[:3]))
-        for term in search_terms:
-            records = get_instruments_by_indication(indication=term, phase=phase, endpoint="")
-            kg_records.extend(records)
-        # Deduplicate instruments by name
-        kg_records = list({r.get("instrument_name", "Unknown"): r for r in kg_records}.values())
+    instrument_meta: dict = {}
+    raw_kg_records: list = []
+    kg_records: list = []
+    reg_records: list = []
+    reg_rules: list = []
 
-        # Regulatory evidence: search all synonym terms
+    try:
+        search_terms = list(dict.fromkeys([indication] + synonyms[:3]))
+
+        # 1) Fetch ALL raw rows first: one row per trial × instrument
+        for term in search_terms:
+            rows = get_instruments_by_indication(indication=term, phase=phase, endpoint="")
+            if rows:
+                raw_kg_records.extend(rows)
+
+        # 2) Count prevalence BEFORE deduplication
+        prevalence_map: dict[str, int] = {}
+        for r in raw_kg_records:
+            name = str(r.get("instrument_name", "Unknown")).strip() or "Unknown"
+            prevalence_map[name] = prevalence_map.get(name, 0) + 1
+
+        # 3) Deduplicate for scoring only: keep the richest row per instrument
+        def _nonempty_score(rec: dict) -> int:
+            return sum(
+                1 for v in rec.values()
+                if v is not None and str(v).strip() not in ("", "nan", "None", "null")
+            )
+
+        deduped: dict[str, dict] = {}
+        for r in raw_kg_records:
+            name = str(r.get("instrument_name", "Unknown")).strip() or "Unknown"
+            if name not in deduped or _nonempty_score(r) > _nonempty_score(deduped[name]):
+                deduped[name] = dict(r)
+
+        kg_records = list(deduped.values())
+
+        # 4) Annotate representative rows with prevalence
+        for r in kg_records:
+            name = str(r.get("instrument_name", "Unknown")).strip() or "Unknown"
+            r["_prevalence"] = prevalence_map.get(name, 1)
+
+        # 5) Pre-fetch Instrument node metadata for all unique instruments
+        unique_instrument_names = sorted({
+            str(r.get("instrument_name", "")).strip()
+            for r in raw_kg_records
+            if str(r.get("instrument_name", "")).strip()
+        })
+
+        for name in unique_instrument_names:
+            refs = get_instrument_reference(instrument_name=name)
+            if refs:
+                instrument_meta[name] = refs[0]
+
+        # 6) Regulatory evidence: deduplicate by review_id
         all_reg = []
         for term in search_terms:
-            all_reg.extend(get_regulatory_evidence(indication=term, agency=""))
-        seen_ids = set()
+            rows = get_regulatory_evidence(indication=term, agency="")
+            if rows:
+                all_reg.extend(rows)
+
+        seen_ids: set[str] = set()
         for r in all_reg:
-            rid = r.get("review_id") or (r.get("drug_name","") + r.get("agency",""))
+            rid = r.get("review_id") or f"{r.get('drug_name','')}|{r.get('agency','')}|{r.get('decision','')}"
             if rid not in seen_ids:
                 seen_ids.add(rid)
                 reg_records.append(r)
 
-        # Regulatory rules (all stages — actual values are Instrument_Selection etc.)
-        reg_rules = get_regulatory_rules(indication=indication, lifecycle_stage="", decision_type="")
+        # # 7) Regulatory rules
+        # reg_rules = get_regulatory_rules(
+        #     indication=indication,
+        #     lifecycle_stage="",
+        #     decision_type=""
+        # )
 
-        logging.info(f"KG: {len(kg_records)} instruments, {len(reg_records)} reviews, {len(reg_rules)} rules")
+        logging.info(
+            f"KG: {len(kg_records)} unique instruments from {len(raw_kg_records)} raw rows, "
+            f"{len(reg_records)} reviews, {len(instrument_meta)} instrument nodes"
+        )
+
+
     except Exception as e:
         error_status = f"Knowledge Graph offline: {e}"
+        raw_kg_records = []
+        kg_records = []
+        instrument_meta = {}
+        reg_records = []
+        reg_rules = []
         logging.error(f"KG query failed: {e}")
 
+
+    # Step B3 — retrieve applicable regulatory rules
+    all_rules = get_regulatory_rules(
+        indication=context_json.get("indication", ""),
+        lifecycle_stage="Instrument_Selection",
+        decision_type=""        
+    )
+    must_rules  = [r for r in all_rules if _to_str(r.get("decision_type")) == "must"]
+    should_rules = [r for r in all_rules if _to_str(r.get("decision_type")) == "should"]
+
+    reg_rules = all_rules
+
+    logging.info(
+        f"Regulatory rules: {len(reg_rules)} total "
+        f"({len(must_rules)} MUST, {len(should_rules)} SHOULD)."
+    )
+
     # --- STEP C: Score instruments ---
-    scored = score_evidence(context_json, kg_records) if kg_records else []
+    scored = score_evidence(context_json, kg_records, instrument_metadata=instrument_meta, raw_kg_records=raw_kg_records)
 
     # --- STEP D: Build coverage matrix (replaces battery optimizer) ---
-    coverage = build_coverage_matrix(scored, context_json, kg_records) if scored else {
-        "domains": [], "comparator_trials": [], "hta_mandatory": [],
-        "item_library_applicable": False, "all_candidates": []
+    coverage = build_coverage_matrix(
+        scored,
+        context_json,
+        raw_kg_records,              
+        instrument_metadata=instrument_meta
+    ) if scored else {
+        "domains": [],
+        "comparator_trials": [],
+        "hta_mandatory": [],
+        "item_library_applicable": False,
+        "all_candidates": []
     }
     top_5 = coverage["all_candidates"][:5]
 
     # --- STEP E: Fetch instrument refs + per-instrument regulatory precedent ---
+    inst_refs = []
+    inst_regulatory_precedents = {}
     if not error_status:
         try:
-            for inst in top_5:
-                name = inst["instrument_name"]
+            # Build the set of instrument names we care about:
+            #   - all top-5 scored instruments for this trial
+            #   - every instrument used in comparator trials from the coverage matrix
+            instrument_names = {inst["instrument_name"] for inst in top_5}
+            for trial in coverage.get("comparator_trials", []):
+                for inst in trial.get("instruments", []):
+                    name = inst.get("name")
+                    if name:
+                        instrument_names.add(name)
+
+            # Fetch instrument reference nodes and per-instrument regulatory evidence
+            for name in sorted(instrument_names):
                 refs = get_instrument_reference(instrument_name=name)
                 if refs:
-                    inst_refs.extend(refs if isinstance(refs, list) else [refs])
+                    if isinstance(refs, list):
+                        inst_refs.extend(refs)
+                    else:
+                        inst_refs.append(refs)
+
                 precedents = get_regulatory_evidence_for_instrument(instrument_name=name)
                 if precedents:
                     inst_regulatory_precedents[name] = precedents
+
         except Exception as e:
             logging.error(f"Instrument ref/precedent fetch failed: {e}")
 
-        # --- STEP E.1: Competitor analysis ---
-        competitor_profiles = []
-        try:
-            competitor_profiles = build_competitor_profiles(
-                indication,
-                context_json.get("drug_class", "Unknown"),
-                reg_records
-            )
-        except Exception as e:
-            logging.warning(f"Competitor analysis step failed: {e}")
+    # --- STEP E.1: Competitor analysis ---
+    competitor_profiles = []
+    try:
+        competitor_profiles = build_competitor_profiles(
+            indication,
+            context_json.get("drug_class", "Unknown"),
+            reg_records
+        )
+    except Exception as e:
+        logging.warning(f"Competitor analysis step failed: {e}")
+
+     # --- STEP E.2 Build PRO measures comparison table in Python ---
+    pro_measures_table = []
+    try:
+        pro_measures_table = build_pro_measures_table(
+            coverage=coverage,
+            inst_refs=inst_refs,
+            rawkgrecords=raw_kg_records,
+            contextjson=context_json,
+        )
+    except Exception as e:
+        logging.error(f"build_pro_measures_table failed: {e}")
 
     # --- STEP F: Clean KG narrative fields ---
     if kg_records:
@@ -1842,14 +2498,45 @@ def get_recommendation(user_text: str) -> dict:
             kg_records = clean_kg_narratives(kg_records)
         except Exception as e:
             logging.warning(f"KG cleaning skipped: {e}")
+    
+    # --- GAP ANALYSIS TABLE ---
+    gap_analysis = []
+    try:
+        gap_analysis = build_gap_analysis(
+            scored=scored,
+            instrument_meta=instrument_meta,
+            reg_records=reg_records,
+            context_json=context_json,
+            top_n=5,
+        )
+    except Exception as e:
+        logging.error(f"build_gap_analysis failed: {e}")
+    
+    # --- ENDPOINT POSITIONING TABLE ---
+    endpoint_positioning = []
+    try:
+        endpoint_positioning = build_endpoint_positioning(
+            raw_kg_records=raw_kg_records,
+            scored=scored,
+            top_n=5,
+        )
+    except Exception as e:
+        logging.error(f"build_endpoint_positioning failed: {e}")
 
-    # --- STEP G: Build evidence block for Sonnet ---
-    citation_index = {}
     # --- STEP G: Build structured evidence block for Sonnet ---
+    citation_index = {}
     kg_block_lines = []
 
     if error_status:
         kg_block_lines.append(f"⚠️ KG OFFLINE — {error_status}")
+        kg_block_lines.append(
+            "IMPORTANT: The knowledge graph is offline. "
+            "DO NOT generate Table 1 or Table 2 with placeholder data. "
+            "Instead, write exactly this at the top of your response:\n"
+            "'⚠️ Knowledge graph is offline. Table 1 and Table 2 cannot be generated "
+            "without KG data. Please reconnect Neo4j and re-run the query.'\n"
+            "Then proceed with web-search-only observations in the Key Observations section."
+        )
     else:
         # === DOMAIN COVERAGE MATRIX ===
         kg_block_lines.append("=== DOMAIN COVERAGE MATRIX ===")
@@ -1894,41 +2581,78 @@ def get_recommendation(user_text: str) -> dict:
         # === PRO ENDPOINT POSITIONING (derived from KG, not hardcoded) ===
         # Show the actual distribution of PRO endpoint positions in KG trials
         # for this indication so Sonnet can reason from data, not from a rule.
-        position_counts = {}
-        for r in kg_records:
-            pos = str(r.get("pro_position") or r.get("endpoint_role") or "Unknown").strip()
-            if pos and pos.lower() not in ("none", "nan", ""):
-                position_counts[pos] = position_counts.get(pos, 0) + 1
+        # Use endpoint_positioning summary instead of recomputing from kg_records
+        if endpoint_positioning:
+            # Aggregate across instruments
+            agg = {"Primary": 0, "Secondary": 0, "Exploratory": 0, "Other": 0}
+            for row in endpoint_positioning:
+                agg["Primary"]      += row.get("primary_count", 0)
+                agg["Secondary"]    += row.get("secondary_count", 0)
+                agg["Exploratory"]  += row.get("exploratory_count", 0)
+                agg["Other"]        += row.get("other_count", 0)
 
-        if position_counts:
-            total_pos = sum(position_counts.values())
-            pos_lines = [
-                f"  {pos}: {count} trial(s) ({int(100*count/total_pos)}%)"
-                for pos, count in sorted(position_counts.items(),
-                                         key=lambda x: -x[1])
-            ]
-            kg_block_lines.append("\n=== PRO ENDPOINT POSITIONING IN KG TRIALS ===")
-            kg_block_lines.append(
-                f"Distribution of PRO endpoint positions across {total_pos} "
-                f"KG trial records for this indication:"
-            )
-            kg_block_lines.extend(pos_lines)
-            kg_block_lines.append(
-                "Use this data to reason about appropriate endpoint positioning "
-                "for the current trial. Do not apply a rule — let the data speak."
-            )
+            total_pos = sum(agg.values())
+            if total_pos > 0:
+                kg_block_lines.append("\n=== PRO ENDPOINT POSITIONING IN KG TRIALS ===")
+                kg_block_lines.append(
+                    f"Distribution of PRO endpoint positions across {total_pos} "
+                    f"trial-instrument records for the top instruments:"
+                )
+                for key in ("Primary", "Secondary", "Exploratory", "Other"):
+                    count = agg[key]
+                    if count:
+                        pct = int(100 * count / total_pos)
+                        kg_block_lines.append(f"  {key}: {count} record(s) ({pct}%)")
+
+                # Also highlight any instrument that has *ever* been primary
+                primaries = [row["instrument"] for row in endpoint_positioning if row.get("primary_count", 0) > 0]
+                if primaries:
+                    kg_block_lines.append(
+                        "Instruments with at least one primary PRO endpoint in the KG sample: "
+                        + ", ".join(primaries)
+                    )
+                else:
+                    kg_block_lines.append(
+                        "No instruments in the KG sample were used as primary PRO endpoints."
+                    )
+
+                kg_block_lines.append(
+                    "Use this data to reason about appropriate endpoint positioning "
+                    "for the current trial. Do not apply a fixed rule."
+                )
 
         # === INSTRUMENT SCORING (for Table 2 item counts) ===
-        kg_block_lines.append(f"\n=== INSTRUMENT REFERENCE DATA ===")
-        for i, ir in enumerate(inst_refs[:8], 1):
-            kg_block_lines.append(
-                f"[IR-{i:03d}] {ir.get('short_name','')} | "
-                f"Items: {ir.get('total_items','?')} | "
-                f"Admin time: {ir.get('admin_time','?')} min | "
-                f"Recall: see INSTRUMENT_RECALL_PERIODS | "
-                f"MCID: {ir.get('mcid','Not established')} | "
-                f"Regulatory acceptance: {ir.get('regulatory_acceptance','')}"
-            )
+        if inst_refs:
+            kg_block_lines.append("INSTRUMENT REFERENCE DATA")
+            # One IR-XXX line per instrument reference node (capped at 8 for token control)
+            for i, ir in enumerate(inst_refs[:8], 1):
+                short = ir.get("shortname") or ir.get("instrumentname") or ir.get("instrument_name") or ""
+                items = (
+                    ir.get("totalitems")
+                    or ir.get("total_items")
+                    or ""
+                )
+                admintime = (
+                    ir.get("admintime")
+                    or ir.get("admin_time")
+                    or ""
+                )
+                mcid = ir.get("mcid") or "Not established"
+
+                regacc = (
+                    ir.get("regulatoryacceptance")
+                    or ir.get("regulatory_acceptance")
+                    or ""
+                )
+
+                kg_block_lines.append(
+                    f"IR-{i:03d} {short} "
+                    f"Items {items} "
+                    f"Admin time {admintime} min "
+                    f"MCID {mcid} "
+                    f"Regulatory acceptance {regacc}"
+                )
+
 
         # === COMPETITOR LANDSCAPE ===
         if competitor_profiles:
@@ -1963,12 +2687,20 @@ def get_recommendation(user_text: str) -> dict:
 
         # === REGULATORY RULES ===
         if reg_rules:
-            kg_block_lines.append(f"\n=== REGULATORY RULES ({len(reg_rules)}) ===")
+            kg_block_lines.append(
+                f"\n=== REGULATORY RULES ({len(reg_rules)}) ==="
+            )
+            kg_block_lines.append(
+                f"Summary: {len(must_rules)} MUST rules, {len(should_rules)} SHOULD rules "
+                f"for instrument selection in this indication."
+            )
             for i, rule in enumerate(reg_rules[:8], 1):
+                dtype = _to_str(rule.get("decision_type")).upper() or "UNSPECIFIED"
                 kg_block_lines.append(
-                    f"[RULE-{i:03d}] {rule.get('source_document','')} | "
+                    f"[RULE-{i:03d}] ({dtype}) {rule.get('source_document','')} | "
                     f"{rule.get('rule_text','')[:200]}"
                 )
+
 
     kg_evidence_block = "\n".join(kg_block_lines)
 
@@ -1983,28 +2715,67 @@ def get_recommendation(user_text: str) -> dict:
             )
     hta_block = "\n".join(hta_lines)
 
+    glossary_section = f"\n\nGlossary:\n{GLOSSARY_TEXT}" if GLOSSARY_TEXT else ""
+
     # --- STEP I: Build Sonnet system prompt ---
     sonnet_system = f"""You are a COA specialist synthesising evidence for a senior COA expert who will make the final decisions. Your job is to present information clearly so the expert can decide — not to recommend or prescribe.
 
 RULE 1 (Two tables are mandatory — this is the most important output):
 You must produce exactly two markdown tables. Do not skip or combine them.
 
-TABLE 1 — Domain Coverage Comparison:
-Columns: FDA Core Concept | Current Trial (Candidate Instruments) | [Comparator Trial 1] | [Comparator Trial 2] | [Comparator Trial 3]
-Rows: Each FDA core domain for this indication + one row for HTA requirement
-Use the comparator trials from the KG evidence block to name the columns.
-For each cell: list the instrument used + whether significant change was detected (Y/N/NR).
-Use ✅ (covered), ⚠️ (partial/general only), ❌ (not collected) for the comparator columns.
-For the Current Trial column: list candidate instruments from the Domain Coverage Matrix above.
-The HTA row MUST include EQ-5D-5L for NICE/ICER/EUnetHTA markets — always.
-Cite each cell with the KG label: [TI-001] etc.
+TABLE 1 — Domain Coverage Comparison (matches your supervisor's slide):
+This table has exactly these columns, in this order:
+| FDA Core Concept | Source | Current Trial Candidates | [Trial name 1] [year] | [Trial name 2] [year] | [Trial name 3] [year] |
 
-TABLE 2 — PRO Measures Comparison:
-Columns: Trial | PRO Measures (n items each) | Calibrated SOA | Total items | Est. completion time
-Rows: Current trial (candidate approach) + each comparator trial from KG
-Use instrument item counts from the IR-XXX blocks in the evidence.
-For "Calibrated SOA": Yes if subscales were used, No if full instruments, TBD for current trial.
-Cite each row with [TI-XXX] for comparator trials.
+Rows: One per FDA core domain + one HTA utility row
+Columns:
+- "FDA Core Concept": the domain name (e.g. "Disease-related bone pain")
+- "Source": the regulatory document that defines this as core (e.g. "FDA 2024 Core PRO Guidance")
+- "Current Trial Candidates": instruments from the Domain Coverage Matrix that cover this domain
+- Each comparator trial column: the instrument used + ✅/⚠️/❌ + whether change was detected (Y/N/NR)
+  Format each cell as: INSTRUMENT_NAME ✅ Change: Y [TI-001]
+  If not collected: ❌ Not collected
+  If general oncology only: ⚠️ General (QLQ-C30 only, no MM module)
+
+WEB SEARCH FOR TABLE 1 GAPS:
+For any comparator trial column where a domain shows "❌ Not collected":
+Search "[trial name] [domain] PRO endpoint" to check whether the instrument was
+used but not in the KG. If web search finds it was collected: update the cell.
+If web search confirms it was not collected: add a footnote explaining why
+(e.g. "Neuropathy not measured — PI class not primary focus of this trial").
+This prevents the table from appearing sparse when data exists in literature.
+Maximum 2 additional web searches for gap-filling. Prioritise the most important gaps.
+
+Name each comparator column with the actual trial name from the KG [TI-XXX].
+If KG has no comparator data, write: "No KG data for this indication" in those columns.
+DO NOT write "[Comparator Trial 1]" as a placeholder — use the actual trial name or state no data.
+DO NOT write "[Candidate instruments needed]" — use the candidates from the Domain Coverage Matrix
+or write "No KG scoring data available" if KG is offline.
+
+TABLE 2 — PRO Measures Comparison (matches your supervisor's slide):
+This table has exactly these columns:
+| Trial | Year | Drug | Drug class | PRO Measures (n items) | Calibrated SOA | Total items | Est. time |
+
+Rows: One per comparator trial from KG + one row for "Current Trial (Proposed)"
+Columns:
+- "Trial": trial name [TI-XXX]
+- "Year": publication year from KG
+- "Drug": drug name from KG
+- "Drug class": mechanism from KG
+- "PRO Measures (n items)": list each instrument with item count in parentheses,
+  e.g. "EORTC QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (5)"
+  Use item counts from [IR-XXX] blocks. If not in KG, write "n=?"
+- "Calibrated SOA": Yes if subscales were used per KG record, No if full instruments, TBD for current
+- "Total items": sum of all instrument items per row
+- "Est. time": sum of admin times in minutes (from IR-XXX admin_time fields)
+
+For the "Current Trial (Proposed)" row:
+- List the candidate instruments from the Domain Coverage Matrix
+- Mark Calibrated SOA as "TBD — expert decision required"
+
+CRITICAL: If KG is offline or returns no comparator data, write one sentence explaining this
+and do NOT generate placeholder rows. A hollow table with "[Candidate instruments needed]"
+is worse than no table.
 
 RULE 2 (PRO endpoint positioning — use KG data):
 The KG evidence block contains a section "PRO ENDPOINT POSITIONING IN KG TRIALS"
@@ -2044,10 +2815,28 @@ RULE 6 (No hallucination):
 Do not state statistics, trial results, or regulatory decisions from training memory.
 Always search the web to verify, then cite the source URL.
 
+RULE 7 (Regulatory rules — must cite when relevant):
+The KG evidence block may contain a section "=== REGULATORY RULES ===" with [RULE-XXX] entries.
+These are published FDA/ICH/EMA rules directly applicable to this indication and phase.
+
+If RULE entries exist, you MUST cite at least one [RULE-XXX] in your output.
+Specifically cite rules when discussing:
+- Pre-specification and alpha control → cite the relevant RULE
+- Estimand strategy → cite the relevant RULE
+- Missing data requirements → cite the relevant RULE
+- Testing hierarchy → cite the relevant RULE
+
+If no RULE entries exist in the KG block, note:
+"No indication-specific regulatory rules retrieved from KG — consult FDA PRO Guidance (2009) directly."
+
 OUTPUT STRUCTURE (follow exactly):
 
 ## COA Measurement Strategy — [Indication] [Phase]
-[1-2 sentences: the key COA challenge for this trial]
+
+**In one sentence:** [what the trial is trying to show with PROs]
+**Key challenge:** [the single biggest PRO design challenge for this trial]
+**Recommended starting point:** [2-3 instruments the expert should seriously consider, citing KG evidence of change detection]
+**Critical gap:** [one thing that will fail the strategy if not addressed — e.g. EQ-5D missing, neuropathy not covered]
 
 ## Table 1: Domain Coverage Comparison
 [mandatory table — see RULE 1]
@@ -2058,6 +2847,15 @@ OUTPUT STRUCTURE (follow exactly):
 ## Key Observations
 [maximum 6 bullet points, each citing a source, each connecting to a specific table cell]
 [include item library note if applicable — RULE 4]
+
+## Comparator Analysis
+For each competitor in the COMP-XXX blocks of the evidence:
+- One row per comparator showing: drug | mechanism | PRO instruments used | outcome | implication for current trial
+- If a comparator used an instrument that detected significant change: note this explicitly as evidence the instrument is sensitive in this context
+- If a comparator used an instrument and found null results: note this as a calibration risk — does the trial design differ enough to expect different results?
+- Conclude with: "Based on comparator evidence, [instrument X] has the strongest signal of change in this indication because [one-sentence reason from KG/web evidence]."
+This section is mandatory when COMP-XXX entries exist in the evidence block.
+If no COMP entries exist, write: "No same-mechanism comparator data available in KG — expert should review recent FDA and EMA medical reviews for [drug class] submissions."
 
 ## HTA Requirements
 [one-line table: HTA Body | Required Instrument | In candidate list? | Action needed]
@@ -2077,8 +2875,13 @@ Glossary: {GLOSSARY_TEXT}"""
     sonnet_user = f"""You are briefing a senior clinical scientist on the COA strategy for their trial.
 Write as a knowledgeable colleague, not as a report generator.
 Every claim must be cited. Every section must conclude with an action.
-The battery has already been selected — your job is to justify it clearly and give the team
-a concrete plan to execute it successfully.
+Present the evidence clearly so the senior COA expert can make the final
+instrument selection. Your role is to organise the evidence — not to select
+or pre-select instruments.
+IMPORTANT: Total output must fit within 15000 tokens. Be concise.
+Tables first. Key Observations: maximum 6 bullets, 2 sentences each.
+What the Expert Needs to Decide: maximum 5 items, 1 sentence each.
+Do not repeat information from tables in prose.
 
 TRIAL CONTEXT:
 {json.dumps(context_json, indent=2)}
@@ -2128,7 +2931,7 @@ the same class as the trial drug, meaning [specific shared regulatory risk]."
         # Try with extended thinking first (no web search)
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
-            max_tokens=15000,
+            max_tokens=20000,
             thinking={"type": "enabled", "budget_tokens": 3000},
             system=sonnet_system,
             tools=[],   # thinking mode: no tools (Sonnet reasons from KG only)
@@ -2181,7 +2984,10 @@ the same class as the trial drug, meaning [specific shared regulatory risk]."
         "citation_index":     citation_index,
         "scored_instruments": scored,
         "competitor_profiles": competitor_profiles, 
-        "kg_evidence_block": kg_evidence_block
+        "kg_evidence_block": kg_evidence_block,
+        "pro_measures": pro_measures_table,
+        "gap_analysis": gap_analysis,
+        "endpoint_positioning": endpoint_positioning,
     }
 
     log_recommendation(user_text, result)
@@ -2202,8 +3008,9 @@ def log_recommendation(user_text: str, result: dict) -> None:
             "phase": result.get("context_json", {}).get("phase", "unknown"),
             "assumptions_made": result.get("context_json", {}).get("assumptions_made", []),
             "coverage_domains": [d["domain"] for d in result.get("coverage", {}).get("domains", [])],
+            "domains_with_candidates": len([d for d in result.get("coverage", {}).get("domains", []) if d.get("candidates")]),
             "hta_mandatory": [h["instrument"] for h in result.get("coverage", {}).get("hta_mandatory", [])],
-            "comparator_trials": [t["trial_name"] for t in result.get("coverage", {}).get("comparator_trials", [])],
+            "comparator_trials": [t["trial_name"] for t in result.get("coverage", {}).get("comparator_trials", [])[:3]],
             "top_5_instruments": [
                 {
                     "name": i["instrument_name"],
@@ -2232,7 +3039,7 @@ def log_recommendation(user_text: str, result: dict) -> None:
 if __name__ == "__main__":
     print("Testing imports...")
     from agent import (
-        get_recommendation, build_battery, clean_mcid,
+        get_recommendation, clean_mcid,
         clean_kg_narratives, KNOWN_LANGUAGE_COUNTS, ensure_full_stop,
         RECALL_PERIOD_UNKNOWN, INSTRUMENT_RECALL_PERIODS
     )
