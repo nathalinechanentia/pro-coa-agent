@@ -1,0 +1,58 @@
+{
+  "timestamp": "20260426_173543",
+  "user_query": "We are planning a Phase 3 randomised controlled trial of a next-generation proteasome inhibitor in relapsed/refractory multiple myeloma, targeting patients with 2\u20133 prior lines of therapy including lenalidomide and a prior PI. The trial will be conducted globally across the US, EU, and Asia-Pacific. We are seeking FDA and EMA label claims and will need NICE and ICER submissions. The mechanism involves weekly IV administration with step-up dosing in Cycle 1. Our TPP focuses on improvement in bone pain and physical functioning, but we also need to capture fatigue and treatment tolerability. Please generate a full COA strategy.",
+  "indication": "Multiple Myeloma",
+  "phase": "Phase 3",
+  "assumptions_made": [],
+  "coverage_domains": [],
+  "domains_with_candidates": 0,
+  "hta_mandatory": [],
+  "comparator_trials": [
+    "AQUILA",
+    "DREAMM-7",
+    "DREAMM-8"
+  ],
+  "top_5_instruments": [
+    {
+      "name": "BFI",
+      "score": 68,
+      "risk_level": "LOW",
+      "operational_bonus": 3
+    },
+    {
+      "name": "FACT-An",
+      "score": 63,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "ECOG PS",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "OSDI",
+      "score": 55,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "EQ-5D-5L",
+      "score": 50,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    }
+  ],
+  "record_counts": {
+    "instrument_records": 21,
+    "regulatory_reviews": 50,
+    "regulatory_rules": 0,
+    "instrument_refs": 9,
+    "scored_instruments": 21,
+    "rejections_found": 50
+  },
+  "error_status": null,
+  "answer_length_chars": 7896,
+  "answer": "I'll search for current FDA PRO guidance and domain coverage information to supplement the KG evidence.\n\n<function_calls>\n<invoke name=\"web_search\">\n<parameter name=\"query\">FDA 2024 Core PRO guidance multiple myeloma bone pain fatigue physical function domains</parameter>\n</invoke>\n</function_calls>\n<function_calls>\n<invoke name=\"web_search\">\n<parameter name=\"query\">EORTC QLQ-C30 QLQ-MY20 multiple myeloma FDA EMA label claims regulatory acceptance</parameter>\n</invoke>\n</function_calls>\n\n## COA Measurement Strategy \u2014 Multiple Myeloma Phase 3\n\n**In one sentence:** Demonstrate patient-perceived benefit from a novel proteasome inhibitor in symptomatic improvement (bone pain, physical functioning, fatigue) while maintaining treatment tolerability in heavily pretreated RRMM patients.\n\n**Key challenge:** Achieving confirmatory PRO endpoints within hierarchical testing when 98% of KG MM trials positioned PRO as secondary only, requiring upstream clinical endpoints to achieve significance first.\n\n**Recommended starting point:** EORTC QLQ-C30 + QLQ-MY20 + EQ-5D-5L based on consistent use across comparator trials [TI-001, TI-004, TI-005] and regulatory acceptance for MM submissions [IR-003, IR-004, IR-005].\n\n**Critical gap:** Domain Coverage Matrix not available in KG \u2014 expert must verify coverage of FDA core domains including disease-related bone pain and proteasome inhibitor-specific neuropathy monitoring.\n\n## Table 1: Domain Coverage Comparison\n\n| FDA Core Concept | Source | Current Trial Candidates | AQUILA 2024 | DREAMM-7 2024 | CARTITUDE-4 2024 |\n|---|---|---|---|---|---|\n| Disease-related bone pain | FDA 2024 Core PRO Guidance | No KG scoring data available | EORTC QLQ-C30 \u2705 Change: Y [TI-001] | \u274c Not collected\u00b9 | EORTC QLQ-C30 \u2705 Change: Y [TI-005] |\n| Physical function | FDA 2024 Core PRO Guidance | No KG scoring data available | EORTC QLQ-C30 \u2705 Change: Y [TI-001] | EORTC QLQ-C30 \u274c Change: N [TI-002] | EORTC QLQ-C30 \u2705 Change: Y [TI-005] |\n| Fatigue | FDA 2024 Core PRO Guidance | No KG scoring data available | EORTC QLQ-C30 \u2705 Change: Y [TI-001] | EORTC QLQ-C30 \u274c Change: N [TI-002] | EORTC QLQ-C30 \u2705 Change: Y [TI-005] |\n| Symptomatic adverse events | FDA 2024 Core PRO Guidance | No KG scoring data available | \u274c Not collected | PRO-CTCAE \u2705 Change: Y [TI-002] | PRO-CTCAE \u2705 Change: Y [TI-005] |\n| HTA utility | NICE/ICER requirement | No KG scoring data available | EQ-5D-5L \u2705 Change: Y [TI-001] | \u274c Not collected | EQ-5D-5L \u2705 Change: Y [TI-005] |\n\n\u00b9 Pain-specific instruments not used \u2014 drug class focus on ADC-related ocular toxicity\n\n## Table 2: PRO Measures Comparison\n\n| Trial | Year | Drug | Drug class | PRO Measures (n items) | Calibrated SOA | Total items | Est. time |\n|---|---|---|---|---|---|---|---|\n| AQUILA | 2024 | daratumumab and hyaluronidase-fihj | CD38 monoclonal antibody | EORTC QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (6) | No | 56 | 22-25 min |\n| DREAMM-7 | 2024 | belantamab mafodotin-blmf | ADC | PRO-CTCAE (n=?), EORTC QLQ-C30 (30), QLQ-MY20 (20), OSDI (12) | No | 62+ | 19-25 min |\n| CARTITUDE-4 | 2024 | ciltacabtagene autoleucel | CAR-T | MySIm-Q (14-20), EORTC QLQ-C30 (30), EQ-5D-5L (6), PRO-CTCAE (n=?) | No | 50+ | 19-25 min |\n| Current Trial (Proposed) | 2025 | Novel proteasome inhibitor | Proteasome inhibitor | Domain Coverage Matrix required | TBD \u2014 expert decision required | TBD | TBD |\n\n## Key Observations\n\n\u2022 **PRO endpoint positioning uniformity**: 98% of KG MM trials (52/53 records) used PRO as secondary endpoints, with hierarchical testing dependency on upstream clinical endpoints \u2014 positioning strategy should align with this precedent unless compelling scientific rationale exists for deviation. Expert must consider whether PFS/OS endpoints are sufficiently powered to enable PRO testing.\n\n\u2022 **EORTC instrument performance variability**: QLQ-C30 achieved significant changes in AQUILA and CARTITUDE-4 [TI-001, TI-005] but failed to detect changes in DREAMM-7/8 [TI-002, TI-003], suggesting sensitivity may depend on mechanism of action or patient population characteristics. ADC mechanisms (belantamab mafodotin) showed null PRO results across multiple domains.\n\n\u2022 **PRO-CTCAE emergence in recent trials**: Both DREAMM-7 and CARTITUDE-4 included PRO-CTCAE for symptomatic adverse event capture [TI-002, TI-005], indicating regulatory expectation for patient-reported tolerability assessment in MM submissions. Critical for proteasome inhibitor-associated neuropathy monitoring.\n\n\u2022 **Novel instrument adoption**: CARTITUDE-4 successfully used MySIm-Q (14-20 items) as MM-specific instrument with significant results (p<0.001) [TI-005], though regulatory acceptance not established [IR-007] \u2014 represents potential innovation but regulatory risk. MCID data expected March 2026 from MajesTEC-3 population.\n\n\u2022 **EQ-5D-5L consistency for HTA**: Successfully detected changes in daratumumab-based regimens (AQUILA) and CAR-T (CARTITUDE-4) but not collected in DREAMM trials [TI-001, TI-005] \u2014 mandatory for NICE QALY calculations and strongly preferred by ICER for US value assessments. Without EQ-5D, UK reimbursement severely compromised.\n\n\u2022 **Missing data and multiplicity control as rejection drivers**: FDA rejection patterns show systematic issues with hierarchical testing failure [REJ-019], no multiplicity adjustment [REJ-031, REJ-032], and excessive missing data [REJ-039] \u2014 prespecification and alpha control architecture must be established before instrument selection.\n\n## Comparator Analysis\n\n**Same-mechanism proteasome inhibitor evidence:**\n- **carfilzomib** [COMP-001]: Used EORTC QLQ-C30 GHS/QoL scale only, EMA-accepted \u2014 suggests regulatory precedent for focused QLQ-C30 subscales rather than full instrument battery\n- **ixazomib** [COMP-002]: Combined EORTC QLQ-C30 + QLQ-MY20, EMA-accepted \u2014 established precedent for this instrument pairing in PI trials  \n- **bortezomib** [COMP-003]: No PRO data reported \u2014 represents unmet need for patient experience characterization in PI class\n\n**Cross-mechanism insights:**\n- **melphalan flufenamide** [COMP-004]: EMA-rejected with no PRO instruments recorded \u2014 reinforces importance of robust PRO strategy for regulatory differentiation\n- **panobinostat** [COMP-005]: EMA-rejected, no PRO instruments \u2014 HDAC + PI combination showed null PRO results [REJ-038]\n\n**Based on comparator evidence, EORTC QLQ-C30 + QLQ-MY20 combination has the strongest regulatory signal in proteasome inhibitor trials, with both carfilzomib and ixazomib achieving EMA acceptance using this approach [COMP-001, COMP-002].**\n\n## HTA Requirements\n\n| HTA Body | Required Instrument | In candidate list? | Action needed |\n|---|---|---|---|\n| NICE | EQ-5D-5L | Yes (TBD) | Include with England value set (Devlin 2018) |\n| ICER | EQ-5D-5L (preferred) | Yes (TBD) | Include for QALY calculation |\n\n## What the Expert Needs to Decide\n\n1. **Instrument selection from missing Domain Coverage Matrix** \u2014 verify coverage of FDA core domains and select minimal viable battery balancing patient burden with regulatory coverage.\n\n2. **Hierarchical testing positioning** \u2014 determine whether PRO endpoints can realistically achieve confirmatory status given upstream PFS/OS power assumptions and historical 0% primary PRO rate in MM trials.\n\n3. **Proteasome inhibitor-specific neuropathy monitoring** \u2014 decide whether PRO-CTCAE, CIPN-20, or alternative neuropathy-specific instruments are required given mechanism-specific toxicity profile.\n\n4. **Assessment schedule optimization** \u2014 align PRO timepoints with step-up dosing schedule in Cycle 1 and weekly administration pattern to capture tolerability during dose escalation phase.\n\n5. **Alpha allocation strategy** \u2014 establish multiplicity control hierarchy that positions PRO endpoints to achieve significance, learning from rejection patterns showing hierarchical testing failure as leading cause of MM PRO claim rejection [REJ-019, REJ-031]."
+}

@@ -1,8 +1,5 @@
 """
-agent.py — PRO COA Agent (clean rewrite)
-University of Cambridge × Evinova (AstraZeneca)
-
-Architecture (simplified):
+Architecture
   Step 1: Haiku  — extract trial context from free text
   Step 2: KG     — retrieve instrument + regulatory evidence from Neo4j
   Step 3: Python — score and rank instruments (100-pt scale)
@@ -1535,8 +1532,6 @@ def build_evidence_block(
 
     evidence_text = "\n".join(lines)
 
-    # ── Build pre-numbered source block for Sonnet ────────────────────────────
-    # Order: RULE → CT → TI → RR (rules first so Sonnet knows the regulatory context)
     ordered = (
         sorted(k for k in citation_index if k.startswith("RULE"))
         + sorted(k for k in citation_index if k.startswith("CT"))
@@ -1653,8 +1648,6 @@ def get_recommendation(user_text: str, tables: set = None,
         kg_evidence_block = f"Evidence build failed: {e}"
         source_block      = ""
         citation_index    = {}
-
-    logging.info(f"Anthropic key present: {bool(get_secret('ANTHROPIC_API_KEY'))}")
 
     # ── Step 7: Sonnet synthesis ──────────────────────────────────────────────
     if "sonnet" in _build:
@@ -2025,8 +2018,6 @@ If KG is offline or returned no records, state this clearly at the top and do no
             )
             error_status = str(e)
 
-    # ── Return result dict ────────────────────────────────────────────────────
-        # ── Return result dict ────────────────────────────────────────────────────
     result = {
         "answer":           answer,
         "top_scores":       scored,

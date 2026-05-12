@@ -1,0 +1,66 @@
+{
+  "timestamp": "20260426_181522",
+  "user_query": "We are planning a Phase 3 randomised controlled trial of a next-generation proteasome inhibitor in relapsed/refractory multiple myeloma, targeting patients with 2\u20133 prior lines of therapy including lenalidomide and a prior PI. The trial will be conducted globally across the US, EU, and Asia-Pacific. We are seeking FDA and EMA label claims and will need NICE and ICER submissions. The mechanism involves weekly IV administration with step-up dosing in Cycle 1. Our TPP focuses on improvement in bone pain and physical functioning, but we also need to capture fatigue and treatment tolerability. Please generate a full COA strategy.",
+  "indication": "Multiple Myeloma",
+  "phase": "Phase 3",
+  "assumptions_made": [],
+  "coverage_domains": [
+    "disease-related bone pain",
+    "physical function",
+    "fatigue",
+    "symptomatic adverse events",
+    "side effect impact summary",
+    "role function",
+    "treatment tolerability"
+  ],
+  "domains_with_candidates": 7,
+  "hta_mandatory": [],
+  "comparator_trials": [
+    "IKEMA",
+    "TOURMALINE-MM4",
+    "TOURMALINE-MM3"
+  ],
+  "top_5_instruments": [
+    {
+      "name": "BFI",
+      "score": 68,
+      "risk_level": "LOW",
+      "operational_bonus": 3
+    },
+    {
+      "name": "FACT-An",
+      "score": 63,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "ECOG PS",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "OSDI",
+      "score": 55,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "AUS",
+      "score": 55,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    }
+  ],
+  "record_counts": {
+    "instrument_records": 21,
+    "regulatory_reviews": 50,
+    "regulatory_rules": 0,
+    "instrument_refs": 10,
+    "scored_instruments": 21,
+    "rejections_found": 50
+  },
+  "error_status": null,
+  "answer_length_chars": 7338,
+  "answer": "## COA Measurement Strategy \u2014 Multiple Myeloma Phase 3\n\n**In one sentence:** Demonstrate that next-generation PI preserves HRQoL and reduces disease-related symptoms compared to standard care while capturing step-up dosing tolerability during Cycle 1.\n\n**Key challenge:** Balancing comprehensive symptom coverage against patient burden in a heavily pre-treated RRMM population with high dropout risk.\n\n**Recommended starting point:** EORTC QLQ-C30 + MY20 + EQ-5D-5L based on strong change detection in TOURMALINE-MM3 and ENDEAVOR [TI-003, TI-005], plus PRO-CTCAE for step-up dosing tolerability [IR-XXX not in KG].\n\n**Critical gap:** No validated instrument in candidate list specifically captures bone pain intensity \u2014 BPI-SF typically required for \"bone pain improvement\" label claims but not in current Domain Coverage Matrix.\n\n## Table 1: Domain Coverage Comparison\n\n| FDA Core Concept | Source | Current Trial Candidates | IKEMA (2021) | TOURMALINE-MM4 (2020) | TOURMALINE-MM3 (2019) | A.R.R.O.W. (2018) | ENDEAVOR (2016) |\n|---|---|---|---|---|---|---|---|---|\n| Disease-related bone pain | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | \u26a0\ufe0f General (QLQ-C30 + MY20, no pain focus) | \u26a0\ufe0f General (QLQ-C30 + MY20, no pain focus) | QLQ-C30 + MY20 \u2705 Change: Y [TI-003] | QLQ-C30 + MY20 \u2705 Change: Y [TI-004] | QLQ-C30 + MY20 \u2705 Change: Y [TI-005] |\n| Physical function | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | QLQ-C30 \u2705 Change: NR [TI-001] | QLQ-C30 \u2705 Change: NR [TI-002] | QLQ-C30 \u2705 Change: Y [TI-003] | QLQ-C30 \u2705 Change: Y [TI-004] | QLQ-C30 \u2705 Change: Y [TI-005] |\n| Fatigue | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | QLQ-C30 \u2705 Change: NR [TI-001] | QLQ-C30 \u2705 Change: NR [TI-002] | QLQ-C30 \u2705 Change: Y [TI-003] | QLQ-C30 \u2705 Change: Y [TI-004] | FACT/GOG-NTX \u2705 Change: Y [TI-005] |\n| Symptomatic adverse events | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | CSQ-8 \u2705 Change: Y [TI-004] | \u274c Not collected\u00b9 |\n| Side effect impact summary | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 |\n| Role function | FDA 2024 Core PRO Guidance | PRO-CTCAE, BFI, FACT-An | QLQ-C30 \u2705 Change: NR [TI-001] | QLQ-C30 \u2705 Change: NR [TI-002] | QLQ-C30 \u2705 Change: Y [TI-003] | QLQ-C30 \u2705 Change: Y [TI-004] | QLQ-C30 \u2705 Change: Y [TI-005] |\n| **HTA Utility** | NICE/ICER requirement | EQ-5D-5L | EQ-5D-5L \u2705 Change: NR [TI-001] | \u274c Not collected\u00b2 | EQ-5D-5L \u2705 Change: NR [TI-003] | EQ-5D-5L \u2705 Change: Y [TI-004] | \u274c Not collected\u00b2 |\n\n\u00b9PRO-CTCAE not yet standard practice in PI trials 2016-2021  \n\u00b2EQ-5D collection inconsistent across MM trials pre-2020\n\n## Table 2: PRO Measures Comparison\n\n| Trial | Year | Drug | Drug class | PRO Measures (n items) | Calibrated SOA | Total items | Est. time |\n|---|---|---|---|---|---|---|---|\n| IKEMA [TI-001] | 2021 | carfilzomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (6) | No | 56 | 20-25 min |\n| TOURMALINE-MM4 [TI-002] | 2020 | ixazomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), QLQ-MY20 (20) | No | 50 | 17-22 min |\n| TOURMALINE-MM3 [TI-003] | 2019 | ixazomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), QLQ-MY20 (20) | No | 50 | 17-22 min |\n| A.R.R.O.W. [TI-004] | 2018 | carfilzomib | Proteasome Inhibitor | CSQ-8 (8), QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (6) | No | 64 | 25-30 min |\n| ENDEAVOR [TI-005] | 2016 | carfilzomib | Proteasome Inhibitor | QLQ-C30 (30), FACT/GOG-NTX (38), QLQ-MY20 (20) | No | 88 | 25-30 min |\n| **Current Trial (Proposed)** | 2025 | next-gen PI | Proteasome Inhibitor | PRO-CTCAE (n=?), BFI (9), FACT-An (47) | TBD \u2014 expert decision required | TBD | TBD |\n\n## Key Observations\n\n\u2022 **EORTC QLQ-C30 + MY20 is the established standard** across all 5 comparator PI trials [TI-001 to TI-005], with significant change detection in 3/5 trials including both ixazomib studies [TI-003, TI-004, TI-005]. This instrument pairing provides regulatory precedent and cross-trial comparability for PI class submissions.\n\n\u2022 **PRO-CTCAE gap represents missed opportunity** \u2014 no comparator trial used systematic PRO-AE capture despite step-up dosing being standard PI protocol design [TI-001 to TI-005]. FDA's 2021 PRO-CTCAE qualification supports its use for symptomatic AE domains that current candidates cannot address.\n\n\u2022 **EQ-5D-5L collection inconsistent** across trials (3/5 collected it) but mandatory for NICE/ICER submissions [IR-007]. TOURMALINE-MM4 and ENDEAVOR omission would preclude UK reimbursement \u2014 critical for global launch strategy.\n\n\u2022 **Secondary endpoint positioning** dominates landscape (90% of PRO records) with no primary PRO endpoints in MM PI trials [KG positioning data]. This suggests PRO-primary positioning would be novel and high-risk for PI class regulatory strategy.\n\n\u2022 **Rejection pattern analysis** shows single-arm bias (8 instances), missing data (4 instances), and hierarchical testing failure (3 instances) as leading PRO rejection reasons [REJ-014 to REJ-050]. Missing data >20% particularly problematic for confirmatory PRO claims [REJ-039].\n\n\u2022 **Item library approach unused** in comparator trials \u2014 all used full instruments rather than calibrated subscales [TI-001 to TI-005]. This represents 50-88 total items per timepoint, potentially excessive for heavily pre-treated RRMM population with performance status decline.\n\n## Comparator Analysis\n\n| Drug | Mechanism | PRO Instruments | Outcome | Implication |\n|---|---|---|---|---|\n| carfilzomib | Proteasome Inhibitor | QLQ-C30, MY20, EQ-5D-5L | Significant change (ARROW, ENDEAVOR) | \u2705 Strong signal for QLQ-C30 + MY20 in PI class |\n| ixazomib | Proteasome Inhibitor | QLQ-C30, MY20 | Significant change (TOURMALINE-MM3) | \u2705 Confirms QLQ-C30 sensitivity in oral PI |\n| carfilzomib | Proteasome Inhibitor | CSQ-8, QLQ-C30, MY20, EQ-5D-5L | Mixed results (ARROW) | \u26a0\ufe0f CSQ-8 not regulatory-relevant |\n\nBased on comparator evidence, **EORTC QLQ-C30 + MY20** has the strongest signal of change in PI indication because both carfilzomib and ixazomib trials demonstrated significant improvements using these instruments [TI-003, TI-004, TI-005], establishing instrument sensitivity within proteasome inhibitor class.\n\n## HTA Requirements\n\n| HTA Body | Required Instrument | In candidate list? | Action needed |\n|---|---|---|---|\n| NICE | EQ-5D-5L | No \u2014 missing from Domain Coverage Matrix | **Must add EQ-5D-5L** |\n| ICER | EQ-5D-5L | No \u2014 missing from Domain Coverage Matrix | **Must add EQ-5D-5L** |\n\n## What the Expert Needs to Decide\n\n1. **Whether to adopt EORTC standard** (QLQ-C30 + MY20 + EQ-5D-5L) based on 5-trial regulatory precedent versus novel PRO-CTCAE approach for symptom-specific capture.\n\n2. **PRO-CTCAE inclusion strategy** for step-up dosing tolerability capture, given no comparator precedent but clear regulatory pathway via FDA qualification.\n\n3. **Secondary endpoint positioning** within testing hierarchy, as 90% precedent suggests PRO-primary would be unprecedented for PI class.\n\n4. **Assessment schedule alignment** with weekly IV dosing and step-up tolerability requirements during Cycle 1.\n\n5. **Bone pain measurement gap** \u2014 whether to add BPI-SF for \"bone pain improvement\" TPP claim, since current candidates lack validated pain intensity scales."
+}

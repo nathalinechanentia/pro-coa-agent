@@ -1,6 +1,5 @@
 """
-PRO COA AI Agent — Chat Interface
-University of Cambridge × Evinova (AstraZeneca)
+Chat Interface
 
 Architecture:
   - Multi-turn chat with session history
