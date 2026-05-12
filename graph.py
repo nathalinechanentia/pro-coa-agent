@@ -58,13 +58,18 @@ class Neo4jConnection:
             ANY(es IN apoc.convert.toList(t.trial_secondary_endpoints) WHERE es IS NOT NULL AND toLower(toString(es)) CONTAINS toLower($endpoint))
         )               
         AND t.pro_assessed_in_trial = "Yes"
+        WITH DISTINCT ti, t, d
         OPTIONAL MATCH (ti)-[:DESCRIBES]->(i:Instrument)
-        WHERE ANY(sn IN apoc.convert.toList(i.short_name) WHERE sn IS NOT NULL AND toLower(toString(sn)) = toLower(ti.instrument_name))
-           OR ANY(fn IN apoc.convert.toList(i.full_name) WHERE fn IS NOT NULL AND toLower(toString(fn)) CONTAINS toLower(ti.instrument_name))
+        WHERE ANY(sn IN apoc.convert.toList(i.short_name) WHERE sn IS NOT NULL AND (
+            toLower(toString(sn)) = toLower(ti.instrument_name)
+            OR toLower(toString(sn)) CONTAINS toLower(ti.instrument_name)
+            OR toLower(ti.instrument_name) CONTAINS toLower(toString(sn))
+        ))
+        OR ANY(fn IN apoc.convert.toList(i.full_name) WHERE fn IS NOT NULL AND toLower(toString(fn)) CONTAINS toLower(ti.instrument_name))
         RETURN
           ti.instrument_name AS instrument_name,
           ti.instrument_domain AS instrument_domain,
-          i.instrument_subscales_assessed AS instrument_subscales_assessed,
+          ti.instrument_subscales_assessed AS instrument_subscales_assessed,
           ti.instrument_endpoint_role AS endpoint_role,
           ti.direction AS direction,
           ti.clinically_meaningful_mid_met AS mid_met,
@@ -73,6 +78,10 @@ class Neo4jConnection:
           ti.effect_size_instrument AS effect_size,
           ti.pro_p_value AS p_value,
           ti.subscale_results_instrument AS subscale_results,
+          ti.subscale_significant_instrument   AS subscale_significant,
+          ti.subscale_not_significant AS subscale_not_significant,
+          ti.sample_size_baseline              AS sample_size,
+          ti.effect_size_difference_instrument AS effect_size_difference,
           t.trial_id AS trial_id,
           t.pivotal_trial_name AS trial_name,
           t.trial_nct_id AS nct_id,
@@ -85,6 +94,7 @@ class Neo4jConnection:
           t.pro_assessment_schedule AS assessment_schedule,
           t.primary_publication_doi AS publication_doi,
           t.primary_publication_year AS publication_year,
+          t.trial_secondary_endpoints AS trial_secondary_endpoints_raw,
           d.generic_name AS drug_name,
           d.primary_disease_area AS disease_area,
           d.disease_classification AS disease_classification,
@@ -153,7 +163,7 @@ class Neo4jConnection:
           rr.pro_missing_data_issue AS missing_data_issue,
           rr.pro_alpha_controlled AS alpha_controlled,
           rr.pro_prespecified AS prespecified,
-          rr.pro_label_language_final AS label_language,
+          rr.pro_label_language_final AS pro_label_language_final,
           rr.pro_label_location AS label_location,
           rr.review_date AS review_date,
           d.generic_name AS drug_name,
@@ -230,8 +240,6 @@ class Neo4jConnection:
 
     # -------------------------------------------------------------------------
     # QUERY 5: Get regulatory rules
-    # KEY FIX: lifecycle_stage left empty by default — actual values are
-    # "Instrument_Selection", "Protocol_Design", etc., NOT "label claim"
     # -------------------------------------------------------------------------
     def get_regulatory_rules(self, indication="", lifecycle_stage="", decision_type=""):
         query = """
@@ -246,6 +254,7 @@ class Neo4jConnection:
         RETURN
           r.rule_id AS rule_id,
           r.source_document AS source_document,
+          r.source_url AS source_url,
           r.section AS section,
           r.lifecycle_stage AS lifecycle_stage,
           r.decision_type AS decision_type,
