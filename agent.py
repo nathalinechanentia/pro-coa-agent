@@ -75,10 +75,6 @@ def get_secret(key: str) -> str:
     except Exception:
         return ""
 
-
-client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
-
-
 def _get_conn() -> Neo4jConnection:
     return Neo4jConnection(
         get_secret("NEO4J_URI"),
@@ -212,6 +208,8 @@ def analyze_trial_context(text: str) -> dict:
     Extract structured trial parameters from free text using Haiku.
     Returns dict with all fields app.py expects from context_json.
     """
+    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+
     default = {
         "indication":       "unknown",
         "phase":            "unknown",
@@ -339,6 +337,8 @@ def map_subscales_to_domains(instrument_name: str, subscale_text: str, extra_dom
     Uses static keywords first; calls Haiku only for unmatched subscales.
     Cached per instrument_name (lowercase). Returns {subscale: domain | None}.
     """
+    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+
     ck = _norm(instrument_name)
     if ck in _subscale_cache:
         return _subscale_cache[ck]
@@ -809,6 +809,8 @@ def infer_domain_change(
 
 def _web_search(query: str, instruction: str) -> Optional[dict]:
     """Run a Haiku web search and return parsed JSON, or None on failure."""
+    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+
     try:
         resp = client.messages.create(
             model=HAIKU,
@@ -1560,6 +1562,8 @@ def get_recommendation(user_text: str, tables: set = None) -> dict:
 
     Returns result dict consumed by app.py render_strategy_result.
     """
+    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+
     _build = tables if tables is not None else {
         "table1", "table2", "table3", "table4", "table5", "sonnet"
     }
@@ -1637,6 +1641,8 @@ def get_recommendation(user_text: str, tables: set = None) -> dict:
         kg_evidence_block = f"Evidence build failed: {e}"
         source_block      = ""
         citation_index    = {}
+
+    logging.info(f"Anthropic key present: {bool(get_secret('ANTHROPIC_API_KEY'))}")
 
     # ── Step 7: Sonnet synthesis ──────────────────────────────────────────────
     if "sonnet" in _build:
