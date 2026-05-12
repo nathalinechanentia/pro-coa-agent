@@ -203,12 +203,14 @@ def _static_subscale_to_domain(subscale: str) -> Optional[str]:
 # SECTION 3: HAIKU HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def analyze_trial_context(text: str) -> dict:
+def analyze_trial_context(text: str, api_key: str = "") -> dict:
     """
     Extract structured trial parameters from free text using Haiku.
     Returns dict with all fields app.py expects from context_json.
     """
-    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+    if not api_key:
+        api_key = get_secret("ANTHROPIC_API_KEY") 
+    client = Anthropic(api_key=api_key)
 
     default = {
         "indication":       "unknown",
@@ -331,13 +333,17 @@ def analyze_trial_context(text: str) -> dict:
         return fallback
 
 
-def map_subscales_to_domains(instrument_name: str, subscale_text: str, extra_domains: list = None) -> dict:
+def map_subscales_to_domains(instrument_name: str, subscale_text: str,
+                             extra_domains: list = None,
+                             api_key: str = "") -> dict:
     """
     Map pipe-delimited subscale names → canonical CORE_DOMAINS.
     Uses static keywords first; calls Haiku only for unmatched subscales.
     Cached per instrument_name (lowercase). Returns {subscale: domain | None}.
     """
-    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+    if not api_key:
+        api_key = get_secret("ANTHROPIC_API_KEY")
+    client = Anthropic(api_key=api_key)
 
     ck = _norm(instrument_name)
     if ck in _subscale_cache:
@@ -935,7 +941,8 @@ def build_domain_coverage(
     raw_records: list,
     context: dict,
     reg_records: list = None,
-    user_text: str = "",      
+    user_text: str = "",
+    api_key: str = "",         
 ) -> dict:
     """Pre-compute the domain coverage matrix for Table 1."""
     hta_markets = [_norm(m) for m in context.get("hta_markets", [])]
@@ -1069,7 +1076,7 @@ def build_domain_coverage(
             "",
         )
         if sub:
-            map_subscales_to_domains(nm, sub, extra_domains)
+            map_subscales_to_domains(nm, sub, extra_domains, api_key=api_key)
 
     # 7. Build domain rows (core domains)
     item_library_note = (
@@ -1552,7 +1559,8 @@ def build_evidence_block(
 # SECTION 10: MAIN ORCHESTRATOR
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def get_recommendation(user_text: str, tables: set = None) -> dict:
+def get_recommendation(user_text: str, tables: set = None,
+                       anthropic_api_key: str = "") -> dict:
     """
     Main entry point for Tier 3 strategy generation.
 
@@ -1562,7 +1570,9 @@ def get_recommendation(user_text: str, tables: set = None) -> dict:
 
     Returns result dict consumed by app.py render_strategy_result.
     """
-    client = Anthropic(api_key=get_secret("ANTHROPIC_API_KEY"))
+    if not anthropic_api_key:
+        anthropic_api_key = get_secret("ANTHROPIC_API_KEY")
+    client = Anthropic(api_key=anthropic_api_key)
 
     _build = tables if tables is not None else {
         "table1", "table2", "table3", "table4", "table5", "sonnet"
@@ -1615,7 +1625,9 @@ def get_recommendation(user_text: str, tables: set = None) -> dict:
     # ── Step 4: Domain coverage + subscale mapping (Table 1) ─────────────────
     if "table1" in _build and scored and not error_status:
         try:
-            coverage = build_domain_coverage(scored, raw_records, context_json, reg_records, user_text)
+            coverage = build_domain_coverage(scored, raw_records, context_json,
+                                 reg_records, user_text,
+                                 api_key=anthropic_api_key)
             logging.info(
                 f"Coverage: {len(coverage['domains'])} domains | "
                 f"{len(coverage['comparator_trials'])} comparator trials"

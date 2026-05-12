@@ -1595,14 +1595,14 @@ if prompt:
             st.session_state.tier1_citation_index.update(prior_index)
 
         else:   # TIER3_STRATEGY
-            _raw_ctx = analyze_trial_context(prompt)
+            _raw_ctx = analyze_trial_context(prompt, api_key=get_secret("ANTHROPIC_API_KEY"))
             full_prompt = build_structured_prompt(
                 prompt, _raw_ctx,
                 sb_indication, sb_phase, sb_drug_class,
                 sb_admin, sb_population, sb_hta, sb_footprint,
             )
             if full_prompt.strip() != prompt.strip():
-                _ctx = analyze_trial_context(full_prompt)
+                _raw_ctx = analyze_trial_context(prompt, api_key=get_secret("ANTHROPIC_API_KEY"))
             else:
                 _ctx = _raw_ctx
             _indication = _ctx.get("indication", "unknown")
@@ -1639,7 +1639,8 @@ if prompt:
                     })
                     st.stop()
 
-                result = get_recommendation(full_prompt)
+                result = get_recommendation(full_prompt,
+                            anthropic_api_key=get_secret("ANTHROPIC_API_KEY"))
 
                 steps[0] = {**steps[0], "status": "complete",
                             "detail": f"{_ctx.get('indication','')} · {_ctx.get('phase','')}"}
