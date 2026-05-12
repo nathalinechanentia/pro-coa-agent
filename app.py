@@ -1442,8 +1442,8 @@ st.title("PRO COA Agent")
 with st.expander("ℹ️ About the data in this tool", expanded=False):
     st.markdown(
         "The primary publication DOI (shown in citations) is the main trial publication. "
-        "However, most KG data — including instrument details, subscale outcomes, PRO findings, "
-        "and regulatory review text — was curated from multiple sources: "
+        "However, most KG data, including instrument details, subscale outcomes, PRO findings, "
+        "and regulatory review text, was curated from multiple sources: "
         "ClinicalTrials.gov, FDA/EMA labels, EPARs, and additional publications such as "
         "PRO‑specific analyses. "
         "The full list of publications for each trial is available on its ClinicalTrials.gov record.\n\n"
