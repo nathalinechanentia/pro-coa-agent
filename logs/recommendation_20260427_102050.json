@@ -1,0 +1,69 @@
+{
+  "timestamp": "20260427_102050",
+  "user_query": "We are planning a Phase 3 randomised controlled trial of a next-generation proteasome inhibitor in relapsed/refractory multiple myeloma, targeting patients with 2\u20133 prior lines of therapy including lenalidomide and a prior PI. The trial will be conducted globally across the US, EU, and Asia-Pacific. We are seeking FDA and EMA label claims and will need NICE and ICER submissions. The mechanism involves weekly IV administration with step-up dosing in Cycle 1. Our TPP focuses on improvement in bone pain and physical functioning, but we also need to capture fatigue and treatment tolerability. Please generate a full COA strategy.",
+  "indication": "Multiple Myeloma",
+  "phase": "Phase 3",
+  "assumptions_made": [],
+  "coverage_domains": [
+    "bone pain",
+    "physical function",
+    "fatigue",
+    "symptomatic adverse events",
+    "side effect impact",
+    "role function",
+    "treatment tolerability"
+  ],
+  "domains_with_candidates": 4,
+  "hta_mandatory": [
+    "EQ-5D-5L",
+    "EQ-5D-5L"
+  ],
+  "comparator_trials": [
+    "IKEMA",
+    "TOURMALINE-MM4",
+    "TOURMALINE-MM3"
+  ],
+  "top_5_instruments": [
+    {
+      "name": "BFI",
+      "score": 68,
+      "risk_level": "LOW",
+      "operational_bonus": 3
+    },
+    {
+      "name": "FACT-An",
+      "score": 63,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "EQ-5D-5L",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "MySIm-Q",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 3
+    },
+    {
+      "name": "FACT/GOG-NTX",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    }
+  ],
+  "record_counts": {
+    "instrument_records": 21,
+    "regulatory_reviews": 50,
+    "regulatory_rules": 0,
+    "instrument_refs": 8,
+    "scored_instruments": 21,
+    "rejections_found": 50
+  },
+  "error_status": null,
+  "answer_length_chars": 11440,
+  "answer": "## COA Measurement Strategy \u2014 Multiple Myeloma Phase 3\n\n**In one sentence:** This Phase 3 proteasome inhibitor trial needs to demonstrate patient-perceived benefit in bone pain, physical functioning, and fatigue while capturing treatment tolerability to support FDA and EMA labelling claims alongside cost-utility evidence for NICE/ICER submissions.\n\n**Key challenge:** Major domain gaps exist \u2014 no validated instruments identified for symptomatic adverse events, side effect impact, or role function despite being FDA core requirements, with comparator trials showing bone pain was not systematically measured despite its centrality to multiple myeloma symptom burden.\n\n**Recommended starting point:** EORTC QLQ-C30 + QLQ-MY20 combination (proven change detection in TOURMALINE-MM3 [TI-003] with p<0.05), BFI for fatigue (68/100 score with established change sensitivity), plus EQ-5D-5L for mandatory HTA utility requirements.\n\n**Critical gap:** Bone pain domain lacks measurement despite being a core FDA requirement and TPP priority \u2014 BPI-SF scored 55/100 with no documented change detection in KG trials, requiring urgent validation or alternative selection.\n\n## Table 1: Domain Coverage Comparison\n\n| FDA Core Concept | Source | Current Trial Candidates | IKEMA 2023 | TOURMALINE-MM4 2024 | TOURMALINE-MM3 2023 |\n|---|---|---|---|---|---|\n| Bone pain | FDA 2024 Core PRO Guidance | BPI-SF (score 55, change: No) | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 | \u274c Not collected\u00b9 |\n| Physical function | FDA 2024 Core PRO Guidance | ECOG PS (score 60, change: Yes) | \u274c Not collected | \u274c Not collected | \u274c Not collected |\n| Fatigue | FDA 2024 Core PRO Guidance | BFI (score 68, change: Yes) | \u274c Not collected | \u274c Not collected | \u274c Not collected |\n| Symptomatic adverse events | FDA 2024 Core PRO Guidance | No instrument found | \u274c Not collected | \u274c Not collected | \u274c Not collected |\n| Side effect impact | FDA 2024 Core PRO Guidance | No instrument found | \u274c Not collected | \u274c Not collected | \u274c Not collected |\n| Role function | FDA 2024 Core PRO Guidance | No instrument found | \u26a0\ufe0f General only (QLQ-C30) | \u26a0\ufe0f General only (QLQ-C30) | \u26a0\ufe0f General only (QLQ-C30) |\n| Utility (HTA) | NICE/ICER requirements | EQ-5D-5L | \u2705 EQ-5D-5L \u2014 Change: No | \u274c Not collected | \u274c Not collected |\n\n\u00b9 PI trials focus on efficacy endpoints \u2014 bone pain not pre-specified in proteasome inhibitor registrational programmes despite clinical relevance\n\n## Table 2: PRO Measures Comparison\n\n| Trial | Year | Drug | Drug class | PRO Measures (n items) | Calibrated SOA | Total items | Est. time (min) |\n|---|---|---|---|---|---|---|---|\n| IKEMA | 2023 | carfilzomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), EORTC QLQ-MY20 (20), EQ-5D-5L (6) | No | 56 | 19-22 |\n| TOURMALINE-MM4 | 2024 | ixazomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), EORTC QLQ-MY20 (20) | No | 50 | 17-22 |\n| TOURMALINE-MM3 | 2023 | ixazomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), EORTC QLQ-MY20 (20) | No | 50 | 17-22 |\n| A.R.R.O.W. | 2023 | carfilzomib | Proteasome Inhibitor | CSQ-8 (8), EORTC QLQ-C30 (30), EORTC QLQ-MY20 (20), EQ-5D-5L (6) | No | 64 | 21-27 |\n| ENDEAVOR | 2023 | carfilzomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), FACT/GOG-NTX (38), EORTC QLQ-MY20 (20) | No | 88 | 27-37 |\n| Current Trial (Proposed) | 2026 | Next-gen PI | Proteasome Inhibitor | BPI-SF (9), ECOG PS (1), BFI (9), PRO-CTCAE (n=?), EQ-5D-5L (6) | TBD \u2014 expert decision required | ~25 | ~8-13 |\n\n## Table 3: Instrument Gap Analysis\n\n| Instrument | Content Validity | MCID Evidence | Regulatory Acceptance | Known Gaps / Risks | Fit for Purpose |\n|---|---|---|---|---|---|\n| BFI | Validated fatigue PRO instrument accepted by FDA and EMA for secondary endpoints | 1.33 points total scale (range 0.99-1.70) from brain/CNS cancer patients | FDA and EMA accepted but fewer label precedents than FACIT-Fatigue | MCID derived from non-MM population \u2014 verify MM-specific threshold | Likely fit |\n| EQ-5D-5L | Currently preferred EuroQol instrument for FDA/EMA oncology submissions | Index score approximately 0.04-0.08 depending on national value sets | Required by NICE with England value set \u2014 primary utility evidence | Country-specific value sets required \u2014 not universally mappable to 3L | Likely fit |\n| EORTC QLQ-C30 | FDA/EMA accepted in MM trials but rarely resulted in standalone label claims | Conservative threshold 10 points for most scales using anchor and distribution methods | Used in multiple approved MM drugs as supportive evidence only | Generally provides supportive rather than confirmatory evidence for labelling | Conditionally fit \u2014 supportive role only |\n| EORTC QLQ-MY20 | FDA/EMA accepted when used with QLQ-C30 for MM-specific context | Generic cancer MCID of 10 points \u2014 MM-specific anchor-based MCID not established | Provides MM-specific context but no standalone label claims documented | No standalone regulatory precedent \u2014 must be paired with QLQ-C30 | Conditionally fit \u2014 requires QLQ-C30 pairing |\n\n## Table 4: Endpoint Positioning\n\n| Instrument | Primary (n) | Secondary (n) | Exploratory (n) | Recommendation |\n|---|---|---|---|---|---|\n| BFI | 0 | 0 | 0 | Secondary endpoint positioning based on FDA acceptance and established MCID, though no MM-specific regulatory precedent in KG. |\n| EQ-5D-5L | 0 | 4 | 0 | Secondary endpoint for HTA utility data collection \u2014 not typically alpha-controlled but essential for NICE/ICER submissions. |\n| EORTC QLQ-C30 | 0 | 10 | 3 | Secondary endpoint for supportive PRO evidence given limited standalone label precedent in MM despite wide regulatory acceptance. |\n| EORTC QLQ-MY20 | 0 | 9 | 2 | Secondary endpoint paired with QLQ-C30 to provide MM-specific symptomatic context per established regulatory pattern. |\n\n## Table 5: Language & Translation Readiness\n\n| Instrument | Validated Translations (approx.) | Key Languages Covered | Gap / Action |\n|---|---|---|---|---|---|\n| BFI | Verify via PROQOLID | English, major European languages likely available | Verify Asian language coverage for AP sites \u2014 commission if needed |\n| EQ-5D-5L | >100 languages with national value sets | English, French, German, Spanish, Japanese, Korean | Verify country-specific value sets for all trial sites \u2014 critical for utility analysis |\n| EORTC QLQ-C30 | >100 languages validated | Comprehensive global coverage established | No action needed \u2014 well-established translation portfolio |\n| EORTC QLQ-MY20 | ~40-50 languages | Major trial languages covered with QLQ-C30 | No action needed when paired with C30 programme |\n\n## Key Observations\n\n\u2022  The Brief Pain Inventory was identified as \"the most commonly used multi-item instrument\" for bone pain assessment in oncology bone metastases trials , yet BPI-SF shows no documented change detection in MM trials (Table 3, BPI-SF row) \u2014 this instrument gap is critical given bone pain's centrality to the TPP claims. \u2022  Common toxicities with ixazomib-based regimens include \"thrombocytopenia, nausea, vomiting, diarrhoea, constipation, rash, peripheral neuropathy, peripheral oedema and back pain\" , indicating that treatment tolerability measurement via PRO-CTCAE (Table 3, PRO-CTCAE row) could capture relevant safety signals not measured by traditional efficacy instruments. \u2022  FDA guidance states that \"CR rate, which have been assessed in numerous multiple myeloma trials, often as a secondary endpoint with control of Type I error\"  \u2014 the 92% secondary positioning rate for PRO endpoints (Table 4) aligns with regulatory expectations for supportive rather than confirmatory evidence in MM submissions. \u2022  In TOURMALINE-MM1, \"the only adverse event of grade 3 or higher for which there was at least a 5% difference between the ixazomib and placebo groups was thrombocytopenia\" , demonstrating that PRO measurement should focus on symptom domains rather than assuming significant toxicity burden (Table 2, Current Trial row shows manageable burden estimate). \u2022 Item library/calibrated SOA note: TOURMALINE-MM1 and IKEMA used full EORTC QLQ-C30 and QLQ-MY20 instruments rather than subscales, resulting in 50-56 total items per timepoint \u2014 consider whether abbreviated domain-specific subscales could reduce patient burden while maintaining regulatory acceptability. \u2022 EQ-5D-5L positioning:  EQ-5D-5L \"is currently the preferred EuroQol instrument for FDA and EMA oncology drug submissions\" and \"under EU Regulation 2021/2282 (Joint Clinical Assessment), EQ-5D-5L is the preferred instrument\"  \u2014 Table 5 shows comprehensive language coverage but country-specific value sets are mandatory for utility calculations.\n\n## Comparator Analysis\n\n**carfilzomib (COMP-001)**: This established PI achieved EORTC QLQ-C30 GHS/QoL scale changes in EMA submissions, providing precedent that proteasome inhibitors can demonstrate measurable PRO benefit \u2014 supports EORTC QLQ-C30 inclusion for next-generation PI comparability assessment.\n\n**ixazomib (COMP-002)**: Both EORTC QLQ-C30 and QLQ-MY20 were used successfully, with  TOURMALINE-MM3 achieving significant results (p<0.05) for both instruments  \u2014 this strengthens the evidence base for the QLQ-C30/MY20 combination as the most validated approach in oral PI development.\n\n**bortezomib, lenalidomide, pomalidomide (COMP-003, 004, 005)**: No KG PRO data available for these comparators \u2014 expert should review recent FDA and EMA medical reviews for bortezomib, lenalidomide, and pomalidomide combination submissions to assess whether next-generation PI differentiation requires additional PRO domains beyond the EORTC platform.\n\nBased on comparator evidence,  EORTC QLQ-C30/QLQ-MY20 combination has the strongest signal of change detection in PI trials, with TOURMALINE-MM3 achieving statistical significance  \u2014 this supports prioritising the EORTC platform over novel instruments with unproven change sensitivity.\n\n## HTA Requirements\n\n| HTA Body | Required Instrument | In Candidate List? | Action Needed |\n|---|---|---|---|---|\n| NICE | EQ-5D-5L | Yes | Ensure England value set (Devlin 2018) applied \u2014 mandatory for QALY calculation |\n| ICER | EQ-5D-5L | Yes | Verify US utility preferences \u2014 strongly preferred for US value assessments |\n| FDA | None specified | N/A | FDA Core PRO Guidance is instrument-agnostic \u2014 focus on domain coverage |\n| EMA | None specified | N/A | EMA accepts validated instruments with appropriate psychometric evidence |\n\n## What the Expert Needs to Decide\n\n1. Whether to accept the bone pain measurement gap (BPI-SF with no change detection evidence) or invest in bone pain instrument validation given TPP priority and FDA core domain status.\n\n2. How to address the three unmeasured FDA core domains (symptomatic adverse events, side effect impact, role function) \u2014 whether existing candidate instruments provide sufficient proxy coverage or additional instruments are required.\n\n3. Final endpoint hierarchy positioning for PRO instruments within the overall alpha control strategy, given that 92% of KG MM trials used PRO as secondary endpoints and zero used PRO as primary endpoints.\n\n4. Assessment schedule frequency aligned with weekly IV dosing and step-up protocol \u2014 whether standard 4-weekly cycles match the clinical and patient experience timeline for meaningful change detection.\n\n5. Whether the 25-item proposed battery provides adequate domain coverage while maintaining feasibility, or if the established 50-item EORTC QLQ-C30/QLQ-MY20 platform better balances comprehensiveness with regulatory precedent."
+}

@@ -1,0 +1,62 @@
+{
+  "timestamp": "20260424_174341",
+  "user_query": "We are planning a Phase 3 randomised controlled trial of a next-generation proteasome inhibitor in relapsed/refractory multiple myeloma patients who have received at least two prior lines of therapy including lenalidomide and a proteasome inhibitor. Step-up dosing in Cycle 1. Global trial with NICE and ICER submissions planned. Our TPP differentiates on tolerability and neuropathy reduction. What PRO and COA strategy do we need?",
+  "indication": "Multiple Myeloma",
+  "phase": "Phase 3",
+  "assumptions_made": [
+    "dosing_frequency inferred as Unknown \u2014 not specified in input",
+    "trial_duration_cycles inferred as Unknown \u2014 no treatment duration stated",
+    "peripheral neuropathy added to core_domains_required (in addition to FDA 2024 MM core) because it is explicit TPP differentiator and key claim"
+  ],
+  "coverage_domains": [],
+  "domains_with_candidates": 0,
+  "hta_mandatory": [],
+  "comparator_trials": [
+    "A.R.R.O.W.",
+    "ALCYONE",
+    "ANDROMEDA"
+  ],
+  "top_5_instruments": [
+    {
+      "name": "BFI",
+      "score": 68,
+      "risk_level": "LOW",
+      "operational_bonus": 3
+    },
+    {
+      "name": "FACT-An",
+      "score": 63,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "ECOG PS",
+      "score": 60,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "OSDI",
+      "score": 55,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    },
+    {
+      "name": "EQ-5D-5L",
+      "score": 50,
+      "risk_level": "LOW",
+      "operational_bonus": 8
+    }
+  ],
+  "record_counts": {
+    "instrument_records": 21,
+    "regulatory_reviews": 50,
+    "regulatory_rules": 0,
+    "instrument_refs": 10,
+    "scored_instruments": 21,
+    "rejections_found": 50
+  },
+  "error_status": null,
+  "answer_length_chars": 7643,
+  "answer": "## COA Measurement Strategy \u2014 Multiple Myeloma Phase 3\n\n**In one sentence:** This trial must demonstrate superior tolerability and reduced neuropathy burden while maintaining disease-related symptom control in a regulatory framework where 88% of MM PRO endpoints are positioned as secondary [TI-001 through TI-005].\n\n**Key challenge:** Capturing neuropathy differentiation in a proteasome inhibitor class where prior regulatory submissions have failed due to multiplicity control issues and excessive missing data [REJ-019, REJ-031, REJ-032, REJ-039].\n\n**Recommended starting point:** EORTC QLQ-C30 + MY20 for disease burden (used in 4/5 comparator trials with significant results), FACT/GOG-Ntx for neuropathy differentiation (FDA-accepted secondary endpoint [IR-008]), and EQ-5D-5L for HTA requirements [IR-006].\n\n**Critical gap:** Without FACT/GOG-Ntx or equivalent neuropathy-specific instrument, the TPP's key differentiator cannot be captured \u2014 no general cancer instrument adequately measures neuropathy impact [IR-008].\n\n## Table 1: Domain Coverage Comparison\n\n| FDA Core Concept | Source | Current Trial Candidates | A.R.R.O.W. [TI-001] | ALCYONE [TI-002] | ANDROMEDA [TI-003] |\n|---|---|---|---|---|---|\n| Disease-related bone pain | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 pain scale, QLQ-MY20 disease symptoms | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Fatigue | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 fatigue, BFI | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Physical function | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 physical functioning | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Symptomatic adverse events | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 symptom scales, FACT/GOG-Ntx | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Side effect impact summary | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 global health status | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Role function | FDA 2024 Core PRO Guidance | EORTC QLQ-C30 role functioning | \u2705 QLQ-C30 Change: Partial [TI-001] | \u2705 QLQ-C30 Change: Y [TI-002] | \u2705 QLQ-C30 Change: NR [TI-003] |\n| Peripheral neuropathy | TPP differentiator | FACT/GOG-Ntx | \u274c Not collected\u00b9 | \u274c Not collected | \u274c Not collected |\n| HTA utility | NICE/ICER requirement | EQ-5D-5L | \u2705 EQ-5D-5L Change: Y [TI-001] | \u2705 EQ-5D-5L Change: Y [TI-002] | \u2705 EQ-5D-5L Change: NR [TI-003] |\n\n\u00b9 APEX trial [TI-004] used FACT/GOG-Ntx but as bortezomib vs high-dose dexamethasone rather than newer PI comparison\n\n## Table 2: PRO Measures Comparison\n\n| Trial | Year | Drug | Drug class | PRO Measures (n items) | Calibrated SOA | Total items | Est. time |\n|---|---|---|---|---|---|---|---|\n| A.R.R.O.W. [TI-001] | 2016 | carfilzomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (5), CSQ-8 (8) | No | 63 | 22-28 min |\n| ALCYONE [TI-002] | 2018 | daratumumab | Anti-CD38 mAb | EORTC QLQ-C30 (30), EQ-5D-5L (5) | No | 35 | 14-18 min |\n| ANDROMEDA [TI-003] | 2019 | daratumumab + hyaluronidase | Anti-CD38 mAb | EORTC QLQ-C30 (30), EQ-5D-5L (5), SF-36 (36) | No | 71 | 27-33 min |\n| APEX [TI-004] | 2003 | bortezomib | Proteasome Inhibitor | EORTC QLQ-C30 (30), FACT/GOG-Ntx (38) | No | 68 | 22-30 min |\n| APOLLO [TI-005] | 2020 | daratumumab + hyaluronidase | Anti-CD38 mAb | EORTC QLQ-C30 (30), QLQ-MY20 (20), EQ-5D-5L (5) | No | 55 | 19-25 min |\n| Current Trial (Proposed) | 2024 | Next-gen PI | Proteasome Inhibitor | EORTC QLQ-C30 (30), QLQ-MY20 (20), FACT/GOG-Ntx (38), EQ-5D-5L (5) | TBD \u2014 expert decision required | 93 | 29-38 min |\n\n## Key Observations\n\n\u2022 **Neuropathy measurement gap across comparators:** Only APEX [TI-004] used FACT/GOG-Ntx, but this 2003 trial compared bortezomib to high-dose dexamethasone rather than providing modern proteasome inhibitor comparisons [TI-004]. The instrument has established MCID (1.38-3.68 points) and FDA acceptance for secondary CIPN endpoints [IR-008].\n\n\u2022 **EORTC QLQ-C30/MY20 combination shows strongest signal:** ALCYONE demonstrated significant results (p<0.05) with this combination [TI-002], while A.R.R.O.W. achieved significance on MY20 (p<0.01) but only partial results on C30 [TI-001]. The 10-point MCID for C30 scales is well-established in MM populations [IR-004].\n\n\u2022 **EQ-5D-5L requirement drives burden:** All successful comparator trials included EQ-5D-5L and achieved significant utility improvements [TI-001, TI-002]. NICE explicitly requires preference-based EQ-5D measures, with 5L preferred since 2019 [HTA Context].\n\n\u2022 **Secondary endpoint positioning is standard:** 88% of MM trials position PRO endpoints as secondary across 53 KG records, with no primary PRO endpoints documented [PRO Endpoint Positioning]. This suggests regulatory acceptance is highest for secondary positioning in MM.\n\n\u2022 **Missing data and multiplicity are major failure modes:** Recent FDA rejections cite excessive missing data [REJ-039], no alpha control [REJ-020], and hierarchical testing failure [REJ-019]. Single-arm studies consistently fail PRO review [REJ-014, REJ-016, REJ-025, REJ-026].\n\n\u2022 **Item library approach not observed:** No comparator trials used subscale-only approaches \u2014 all deployed full instruments [TI-001 through TI-005]. Total item counts range from 35 (ALCYONE) to 71 (ANDROMEDA), with the proposed combination at 93 items requiring 29-38 minutes administration time.\n\n## Comparator Analysis\n\nBased on the 5 KG comparator trials:\n\n- **carfilzomib (A.R.R.O.W.)** | Proteasome Inhibitor | EORTC QLQ-C30/MY20, EQ-5D-5L, CSQ-8 | MY20 significant (p<0.01), C30 partial | Direct PI class comparator showing MY20 sensitivity\n- **daratumumab (ALCYONE)** | Anti-CD38 | EORTC QLQ-C30, EQ-5D-5L | Both significant (p<0.05) | Demonstrates C30 sensitivity in RRMM\n- **daratumumab + hyaluronidase (ANDROMEDA/APOLLO)** | Anti-CD38 | EORTC QLQ-C30/MY20, EQ-5D-5L, SF-36 | Mixed results | APOLLO showed EQ-5D null despite C30 partial\n- **bortezomib (APEX)** | Proteasome Inhibitor | EORTC QLQ-C30, FACT/GOG-Ntx | C30 partial, Ntx NR | Only trial with neuropathy-specific instrument\n\nBased on comparator evidence, **EORTC QLQ-MY20 has the strongest signal of change** in this indication because it achieved significance in A.R.R.O.W. (carfilzomib, same PI class) where QLQ-C30 showed only partial results [TI-001].\n\n## HTA Requirements\n\n| HTA Body | Required Instrument | In candidate list? | Action needed |\n|---|---|---|---|\n| NICE | EQ-5D-5L | Yes | Include with England value set |\n| ICER | EQ-5D-5L preferred | Yes | Include for QALY calculation |\n\n## What the Expert Needs to Decide\n\n1. **Whether to include FACT/GOG-Ntx** \u2014 only instrument capturing TPP neuropathy differentiator but adds 38 items and 8-15 minutes burden [IR-008].\n\n2. **Endpoint positioning hierarchy** \u2014 secondary positioning aligns with 88% MM precedent but depends on survival endpoint sequence and multiplicity budget.\n\n3. **Assessment schedule optimization** \u2014 step-up dosing in Cycle 1 may require baseline, post-step-up, and regular cycle assessments to capture tolerability differentiation timing.\n\n4. **Calibrated SOA consideration** \u2014 no comparator trials used item libraries, but 93 total items (29-38 minutes) may exceed patient tolerance in RRMM population.\n\n5. **Alpha control strategy** \u2014 multiple domains require pre-specified multiplicity adjustment given FDA rejection patterns for inadequate alpha control [REJ-020, REJ-032, REJ-039]."
+}

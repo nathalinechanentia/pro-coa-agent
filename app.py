@@ -1639,7 +1639,7 @@ if prompt:
                     st.stop()
 
                 result = get_recommendation(full_prompt,
-                            anthropic_api_key=get_secret("ANTHROPIC_API_KEY"))
+                            anthropic_api_key=get_secret("ANTHROPIC_API_KEY"), disable_web_search=True)
 
                 steps[0] = {**steps[0], "status": "complete",
                             "detail": f"{_ctx.get('indication','')} · {_ctx.get('phase','')}"}

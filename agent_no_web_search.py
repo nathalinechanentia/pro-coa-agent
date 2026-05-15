@@ -1553,7 +1553,6 @@ def build_evidence_block(
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 10: MAIN ORCHESTRATOR
 # ═══════════════════════════════════════════════════════════════════════════════
-
 def get_recommendation(user_text: str, tables: set = None,
                        anthropic_api_key: str = "",
                        disable_web_search: bool = False) -> dict:
@@ -1996,9 +1995,9 @@ If KG is offline or returned no records, state this clearly at the top and do no
             f"Trial description:\n{user_text}\n\n"
             f"KNOWLEDGE GRAPH EVIDENCE:\n{kg_evidence_block}"
         )
-        
+
+        tools = [] if disable_web_search else [{"type": "web_search_20250305", "name": "web_search"}]
         try:
-            tools = [] if disable_web_search else [{"type": "web_search_20250305", "name": "web_search"}]
             resp = client.messages.create(
                 model=SONNET,
                 max_tokens=8000,
