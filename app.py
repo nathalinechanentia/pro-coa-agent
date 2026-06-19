@@ -1003,7 +1003,7 @@ KG RECORDS AVAILABLE FOR THIS QUERY
     })
     try:
         with client.messages.stream(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-6",
             max_tokens=3000,
             system=system_prompt,
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
